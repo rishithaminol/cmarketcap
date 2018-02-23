@@ -1,0 +1,3 @@
+*.o
+cmarketcap
+*.db-journal
