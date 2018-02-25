@@ -34,7 +34,7 @@ void cm_error(const char *err_str, ...)
 	char temp_string[4096];
 
 #ifdef CM_DEBUG_
-	sprintf(debug_string, "%s:%s:%d", basename((char *)section), func, line_num);
+	sprintf(debug_string, "%s:%s%s()%s:%d", basename((char *)section), COLOR_RED, func, COLOR_RESET, line_num);
 #endif
 
 	va_start(args, err_str);
