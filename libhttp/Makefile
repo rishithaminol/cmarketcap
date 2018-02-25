@@ -1,7 +1,10 @@
-CFLAGS=-lpthread
+CFLAGS=-Wall -DCM_DEBUG_ -g -lpthread
 
-all: myhttpd myhttpd_thread
-myhttpd: myhttpd.c
-#	gcc -o myhttpd myhttpd.c
-myhttpd_thread: myhttpd_thread.c
-#	gcc -o myhttpd_thread myhttpd_thread.c
+TARGETS=httpd
+
+all: httpd
+
+httpd: httpd.c ../cm_debug.c
+
+clean:
+	rm -rf *.o $(TARGETS)
