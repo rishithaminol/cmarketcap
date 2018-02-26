@@ -72,7 +72,7 @@ void debug_msg(const char *section, const char *func, int line_num,
 {
 	va_list args;
 	char debug_string[256] = "";
-	char temp_string[4096];
+	char temp_string[4096] = "";
 
 	sprintf(debug_string, "%s:%s%s()%s:%d", basename((char *)section), BOLD, func, COLOR_RESET, line_num);
 
