@@ -15,6 +15,12 @@
 #define RD_BUFF_MAX 1024
 #define CLIENT_MAX  10
 
+const char dumy_json[] = "{"
+						 "	\"coin_id\":\"bitcoin\","
+						 "	\"min_0_rank\":1,"
+						 "	\"min_5_rank\":2 "
+						 "}";
+
 struct myhttp_header {
 	char method[5];
 	char filename[200];
@@ -44,14 +50,14 @@ void error_handle(char *err)
  */
 void parse_http_header(char *buff, struct myhttp_header *header)
 {
-	char *token, *tmp;
+	char *token;
 	char *line = NULL;
 
 	/* fetch the first line. like 'GET /path HTTP/1.1' */
 	line = strtok_r(line, "\n", &buff);
 	fprintf (stdout, "line = %s\n", line);
 
-	DEBUG_MSG("received header %s\n", buff);
+	DEBUG_MSG("buff = %s\n", buff);
 	/* parse line */
 	token = strtok_r(line, " ", &line);
 	strcpy(header->method, token);
@@ -62,15 +68,16 @@ void parse_http_header(char *buff, struct myhttp_header *header)
 
 	/* find request file type */
 	token = strtok_r(buff, "\n", &buff);
-	while (strstr(buff, "Accept:") == NULL)
-		token = strtok_r(buff, "\n", &buff);
+	if ((token = strstr(buff, "Accept:")) != NULL) {
+		token = strtok_r(token, "\n", &token);
+	}
 
-	
-
-	tmp = strtok(token, " ");
-	printf("tmp = %s\n", tmp);
-	tmp = strtok(NULL, ",");
-	strcpy(header->type, tmp);
+	/* pay attention. No error but unwanted coding. */
+	token = strtok_r(token, " ", &token); /* 'Accept:' */
+	token = token + strlen(token) + 1;
+	token = strtok_r(token, ",", &token);
+	printf("token = %s\n", token);
+	strcpy(header->type, token);
 }
 
 int check_http_header(struct myhttp_header *header)
@@ -78,7 +85,10 @@ int check_http_header(struct myhttp_header *header)
 	return 0;
 }
 
-/* @brief Send http headers to the client */
+/* @brief Send http headers to the client
+ *
+ * called by send_response
+ */
 void send_header(int sockfd, char *code, char *type)
 {
 	char buf[100];
@@ -165,13 +175,14 @@ void *__cb_read_from_client(void *sock)
 {
 	char buffer[RD_BUFF_MAX];
 	int nbytes;
-	struct myhttp_header header;
+	struct myhttp_header header; /* HEADER */
 	int sockfd;
 	struct sockaddr_in client_sockaddr;
 	socklen_t clilen;
 
 	int httpd_sockfd = *((int *)sock);
 
+	/* accept function should be pthread mutexed */
 	while ((sockfd = accept(httpd_sockfd, (struct sockaddr *)&client_sockaddr, &clilen))) {
 		DEBUG_MSG("client accepted connection\n");
 
@@ -191,8 +202,9 @@ void *__cb_read_from_client(void *sock)
 				parse_http_header(buffer, &header); /**! parse_http_header */
 
 				send_response(sockfd, &header); /* buffer and header should be filled with zeros */
+
 				close(sockfd);
-				DEBUG_MSG("COnnection closed\n");
+				DEBUG_MSG("Connection closed\n");
 				break;
 			}
 		}
