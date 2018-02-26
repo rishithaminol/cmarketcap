@@ -25,6 +25,8 @@ void *update_database(void *db_)
 
 	sqlite3 *db = (sqlite3 *)db_;
 
+	pthread_detach(pthread_self());
+
 	int i = 0;
 	do {
 		if (col_5min > 0) { /* Executes from the second step of the loop */
@@ -47,6 +49,8 @@ void *update_database(void *db_)
 		free_entry_base(coin_base);
 		sleep(300);
 	} while (1);
+
+	pthread_exit(NULL);
 }
 
 int main(int argc, char *argv[])
@@ -61,11 +65,10 @@ int main(int argc, char *argv[])
 	db = open_main_db();
 
 	pthread_create(&update_database_id, NULL, update_database, (void *)db);
-	pthread_join(update_database_id, NULL); /**! wait until all other threads */
 
 	update_database(db);
 
 	close_main_db(db);
 
-	return 0;
+	pthread_exit(NULL);
 } /* main */

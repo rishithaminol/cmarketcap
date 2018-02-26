@@ -10,32 +10,12 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include "../cm_debug.h"
-#include "../sql_api.h"
+#include "cm_debug.h"
+#include "sql_api.h"
+#include "httpd.h"
 
 #define RD_BUFF_MAX 1024
 #define CLIENT_MAX  10
-
-const char dumy_json[] = "{"
-						 "	\"coin_id\":\"bitcoin\","
-						 "	\"min_0_rank\":1,"
-						 "	\"min_5_rank\":2 "
-						 "}";
-
-struct myhttp_header {
-	char method[5];
-	char filename[200];
-	char protocol[10];
-	char type[100];
-};
-
-void error_handle(char *err);
-void *__cb_read_from_client(void *sock);
-int write_to_client(int sockfd);
-void parse_http_header(char *buff, struct myhttp_header *header);
-int check_http_header(struct myhttp_header *header);
-void send_header(int, char *, char *);
-void send_json_response(int buff, struct myhttp_header *header);
 
 void error_handle(char *err)
 {
@@ -126,14 +106,12 @@ void send_header(int sockfd, char *code, char *type)
  *
  * We have to write a functio to tokenize url data.
  */
-void send_json_response(int sockfd, struct myhttp_header *header)
+void send_json_response(int sockfd, struct myhttp_header *header, sqlite3 *db)
 {
 	char code[4];
 	struct coin_status_base *sb;
 	struct coin_status *t;
 	char tempstr[200];
-
-	sqlite3 *db = open_main_db();
 
 	strcpy(code, "200");
 	send_header(sockfd, code, "application/json");
@@ -152,25 +130,31 @@ void send_json_response(int sockfd, struct myhttp_header *header)
 			   t->coin_id, t->col1, t->col1_rank, t->col2, t->col2_rank);
 		write(sockfd, tempstr, strlen(tempstr));
 		t = t->next;
+
 		if(t != NULL)
 			write(sockfd, ",\n", strlen(",\n"));
 	}
 	write(sockfd, "]\n", strlen("]\n"));
 
 	free_coin_status_base(sb);
-
-	close_main_db(db);
 } /* send_json_response */
 
+struct __cb_args {
+	int socket;
+	sqlite3 *db;
+};
+
 /* @brief Callback function for 'pthread_create' */
-void *__cb_read_from_client(void *sock)
+void *__cb_read_from_client(void *cb_arg)
 {
 	char buffer[RD_BUFF_MAX];
 	int nbytes;
 	struct myhttp_header header; /* HEADER */
 	int sockfd;
+	struct __cb_args *_cb_arg = (struct __cb_args *)cb_arg;
 
-	sockfd = *((int *)sock);
+	sockfd = _cb_arg->socket;
+	sqlite3 *db = _cb_arg->db;
 
 	pthread_detach(pthread_self());
 
@@ -190,13 +174,14 @@ void *__cb_read_from_client(void *sock)
 			}
 			parse_http_header(buffer, &header); /**! parse_http_header */
 
-			send_json_response(sockfd, &header); /* buffer and header should be filled with zeros */
+			send_json_response(sockfd, &header, db); /* buffer and header should be filled with zeros */
 
 			break;
 		}
 	}
 
 	close(sockfd);
+	free(_cb_arg);
 	DEBUG_MSG("Connection closed\n");
 
 	pthread_exit(NULL);
@@ -207,16 +192,12 @@ int write_to_client(int sockfd)
 	return 0;
 }
 
-#define MAX_THREADS 3
-char *prog_name = NULL;
-
-int main(int argc, char *argv[])
+/* @brief needs openned database */
+int __cb_main_thread(sqlite3 *db)
 {
 	int httpd_sockfd;
 	int httpd_port;
 	int sockfd;
-
-	prog_name = *argv;
 
 	struct sockaddr_in httpd_sockaddr;
 	struct sockaddr_in client_sockaddr;
@@ -224,21 +205,17 @@ int main(int argc, char *argv[])
 
 	pthread_t httpd_thread; /**! store thread ids */
 
-	/* @brief verify number of arguments first */
-	if (argc != 2) {
-		CM_ERROR("incorrect number of args");
-		exit(1);
-	}
+	pthread_detach(pthread_self());
 
 	/* port */
-	httpd_port = atoi(argv[1]);
+	httpd_port = 1040;
 	if (httpd_port <= 1024 || httpd_port >= 65536) {
 		CM_ERROR("port number has to between 1024 and 65536 (not included)\n");
 		exit(1);
 	}
 
 	/* init server socket (ipv4, tcp) */
-	httpd_sockfd = socket(PF_INET, SOCK_STREAM, 0);
+	httpd_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (httpd_sockfd < 0) {
 		CM_ERROR("httpd socket failed to create\n");
 		exit(1);
@@ -263,16 +240,20 @@ int main(int argc, char *argv[])
 	}
 
 	while (1) {
+		struct __cb_args *cb_arg = NULL;
 		sockfd = accept(httpd_sockfd, (struct sockaddr *)&client_sockaddr, &clilen);
 		if (sockfd == -1) {
 			CM_ERROR("Connection accept error\n");
 			continue;
 		} else {
 			DEBUG_MSG("Client accepted connection\n");
+			cb_arg = (struct __cb_args *)malloc(sizeof(struct __cb_args));
+			cb_arg->socket = sockfd;
+			cb_arg->db = db;
 		}
 
 		if (pthread_create(&httpd_thread, NULL, (void *)__cb_read_from_client,
-			(void *)&sockfd) != 0) {
+			(void *)cb_arg) != 0) {
 			CM_ERROR("pthread create error\n");
 			pthread_exit(NULL);
 		} else {

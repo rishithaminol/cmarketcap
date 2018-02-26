@@ -3,7 +3,9 @@ LDFLAGS=-L/home/minol/.local/lib -ljansson -lcurl -lsqlite3 -lpthread
 
 TARGETS=cmarketcap
 
-cmarketcap: cm_debug.o sql_api.o json_parser.o cmarketcap.c
+cmarketcap: httpd.o cm_debug.o sql_api.o json_parser.o cmarketcap.c
+
+httpd.o: httpd.c httpd.h
 
 cm_debug.o: cm_debug.c cm_debug.h
 
