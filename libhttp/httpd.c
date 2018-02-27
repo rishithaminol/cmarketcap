@@ -116,7 +116,7 @@ void send_json_response(int sockfd, struct myhttp_header *header, sqlite3 *db)
 	strcpy(code, "200");
 	send_header(sockfd, code, "application/json");
 	/* SQL output as json */
-	sb = fetch_duration(db, "min_0", "min_10");
+	sb = fetch_duration(db, "min_0", "min_5");
 
 	t = sb->first;
 
@@ -205,7 +205,7 @@ int __cb_main_thread(sqlite3 *db)
 
 	pthread_t httpd_thread; /**! store thread ids */
 
-	pthread_detach(pthread_self());
+	//pthread_detach(pthread_self());
 
 	/* port */
 	httpd_port = 1040;
@@ -263,5 +263,6 @@ int __cb_main_thread(sqlite3 *db)
 
 	close(httpd_sockfd);
 
-	pthread_exit(NULL);
+	//pthread_exit(NULL);
+	return 0;
 } /* main */

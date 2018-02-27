@@ -117,7 +117,7 @@ struct coin_status_base *fetch_duration(sqlite3 *db, const char *col1,
 
 	sql = sqlite3_mprintf("SELECT %s, %s, coin_key "
 					"FROM coin_history "
-					"WHERE %s > %s "
+					"WHERE %s < %s "
 					"ORDER BY %s;", col1, col2, col1, col2, col1);
 
 	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK)
@@ -180,6 +180,20 @@ void fill_column(sqlite3 *db, struct coin_entry_base *coin_base)/*,
 
 	LOCK_DB_ACCESS;
 
+	/* before filling set all values in min_0 column to '-1' */
+	sql = sqlite3_mprintf(
+		"UPDATE coin_history SET %s = %d;",	col, -1);
+
+	sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0);
+
+	if (!(sqlite3_step(stmt_1) == SQLITE_DONE))
+		CM_ERROR("%s\n", sqlite3_errmsg(db));
+
+	DEBUG_MSG("setting all values to -1\n");
+
+	sqlite3_free(sql);
+	sqlite3_finalize(stmt_1);
+
 	while (t != NULL) {
 		sql = sqlite3_mprintf(
 			"UPDATE coin_history SET %s = %d WHERE coin_key = '%s'",
@@ -223,14 +237,15 @@ void shift_columns(sqlite3 *db, const char *col1, const char *col2)
 
 	LOCK_DB_ACCESS;
 
-	sql = sqlite3_mprintf(
-		"UPDATE coin_history SET %s = %s", col1, col2);
+	sql = sqlite3_mprintf("UPDATE coin_history SET %s = %s;", col1, col2);
 
 	DEBUG_MSG("shifting columns -- %s\n", sql);
 
-	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK); /* what happens
-																if database is busy*/
+	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_DONE)
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
+
+	if (!(sqlite3_step(stmt_1) == SQLITE_DONE))
+			CM_ERROR("%s\n", sqlite3_errmsg(db));
 
 	sqlite3_free(sql);
 	sqlite3_finalize(stmt_1);
@@ -245,8 +260,11 @@ void shift_columns(sqlite3 *db, const char *col1, const char *col2)
 
 	DEBUG_MSG("shifting time stamps -- %s\n", sql);
 
-	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK);
+	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_DONE)
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
+
+	if (!(sqlite3_step(stmt_1) == SQLITE_DONE))
+			CM_ERROR("%s\n", sqlite3_errmsg(db));
 
 	UNLOCK_DB_ACCESS;
 

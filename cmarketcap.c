@@ -6,6 +6,7 @@
 #include "json_parser.h"
 #include "sql_api.h"
 #include "cm_debug.h"
+#include "httpd.h"
 
 /* @brief coin_history column map */
 char *col_names[] = {"min_0", "min_5", "min_10", "min_15", "min_20", "min_25", "min_30",
@@ -21,7 +22,7 @@ char *prog_name = NULL; /**< Program name */
 void *update_database(void *db_)
 {
 	struct coin_entry_base *coin_base;
-	int col_5min = 0; /**! holds the number of columns currently updated */
+	int col_rounds = 0; /**! holds the number of columns currently updated */
 
 	sqlite3 *db = (sqlite3 *)db_;
 
@@ -29,13 +30,13 @@ void *update_database(void *db_)
 
 	int i = 0;
 	do {
-		if (col_5min > 0) { /* Executes from the second step of the loop */
+		if (col_rounds > 0) { /* Executes from the second step of the loop */
 			int j;
-			for (j = col_5min; j > 0; j--) {
+			for (j = col_rounds; j > 0; j--) {
 				/* at the time of shifting, time_stamp data should be
 				 * shifted
 				 */
-				shift_columns(db, col_names[j], col_names[j - 1]); 
+				shift_columns(db, col_names[j], col_names[j - 1]);
 				/* shift_time_stamps(db, ) */
 				DEBUG_MSG("%s shifted to %s\n", col_names[j - 1], col_names[j]);
 			}
@@ -43,8 +44,8 @@ void *update_database(void *db_)
 
 		coin_base = new_coin_entry_base();
 		fill_column(db, coin_base);
-		col_5min = ++i; /* already filled a column */
-		DEBUG_MSG("col_5min = %d\ni = %d\n", col_5min, i);
+		col_rounds = ++i; /* already filled a column */
+		DEBUG_MSG("col_rounds = %d\ni = %d\n", col_rounds, i);
 
 		free_entry_base(coin_base);
 		sleep(300);
@@ -56,19 +57,27 @@ void *update_database(void *db_)
 int main(int argc, char *argv[])
 {
 	sqlite3 *db;
-	pthread_t update_database_id;
+	/*pthread_t update_database_id;
 
-	pthread_mutex_init(&sql_db_access, NULL);
+	pthread_mutex_init(&sql_db_access, NULL);*/
 
 	prog_name = *argv;
 
 	db = open_main_db();
 
-	pthread_create(&update_database_id, NULL, update_database, (void *)db);
+	shift_columns(db, "min_5", "min_0");
 
-	update_database(db);
+	/*pthread_create(&update_database_id, NULL, update_database, (void *)db);
+	__cb_main_thread(db);
 
 	close_main_db(db);
+	DEBUG_MSG("main database closed\n");
 
-	pthread_exit(NULL);
+	pthread_exit(NULL);*/
+
+	/*struct coin_entry_base *sb = new_coin_entry_base();
+	init_coin_history_table(db, sb);*/
+
+	close_main_db(db);
+	return 0;
 } /* main */
