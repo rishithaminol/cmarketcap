@@ -207,12 +207,8 @@ int __cb_main_thread(sqlite3 *db)
 
 	//pthread_detach(pthread_self());
 
-	/* port */
+	/* port number has to between 1024 and 65536 (not included) */
 	httpd_port = 1040;
-	if (httpd_port <= 1024 || httpd_port >= 65536) {
-		CM_ERROR("port number has to between 1024 and 65536 (not included)\n");
-		exit(1);
-	}
 
 	/* init server socket (ipv4, tcp) */
 	httpd_sockfd = socket(AF_INET, SOCK_STREAM, 0);
