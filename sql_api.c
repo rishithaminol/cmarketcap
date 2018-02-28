@@ -186,7 +186,7 @@ void fill_column(sqlite3 *db, struct coin_entry_base *coin_base)/*,
 
 	sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0);
 
-	if (!(sqlite3_step(stmt_1) == SQLITE_DONE))
+	if (!(sqlite3_step(stmt_1) != SQLITE_ROW))
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
 
 	DEBUG_MSG("setting all values to -1\n");
@@ -237,15 +237,19 @@ void shift_columns(sqlite3 *db, const char *col1, const char *col2)
 
 	LOCK_DB_ACCESS;
 
-	sql = sqlite3_mprintf("UPDATE coin_history SET %s = %s;", col1, col2);
+	sql = sqlite3_mprintf("UPDATE coin_history SET `%s` = `%s`", col1, col2);
 
 	DEBUG_MSG("shifting columns -- %s\n", sql);
 
-	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_DONE)
+	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK) {
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
+		exit(EXIT_FAILURE);
+	}
 
-	if (!(sqlite3_step(stmt_1) == SQLITE_DONE))
-			CM_ERROR("%s\n", sqlite3_errmsg(db));
+	if (!(sqlite3_step(stmt_1) != SQLITE_ROW)) {
+		CM_ERROR("%s\n", sqlite3_errmsg(db));
+		exit(EXIT_FAILURE);
+	}
 
 	sqlite3_free(sql);
 	sqlite3_finalize(stmt_1);
@@ -260,11 +264,16 @@ void shift_columns(sqlite3 *db, const char *col1, const char *col2)
 
 	DEBUG_MSG("shifting time stamps -- %s\n", sql);
 
-	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_DONE)
+	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK) {
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
+		exit(EXIT_FAILURE);
+	}
 
-	if (!(sqlite3_step(stmt_1) == SQLITE_DONE))
-			CM_ERROR("%s\n", sqlite3_errmsg(db));
+	/* This function will never return SQLITE_OK. */
+	if (!(sqlite3_step(stmt_1) != SQLITE_ROW)) {
+		CM_ERROR("%s\n", sqlite3_errmsg(db));
+		exit(EXIT_FAILURE);
+	}
 
 	UNLOCK_DB_ACCESS;
 
@@ -353,7 +362,7 @@ sqlite3 *open_main_db(void)
 	if (sqlite3_open(SQL_DATABASE, &db) != SQLITE_OK) {
 		sqlite3_close(db);
 		DEBUG_MSG("%s\n", sqlite3_errmsg(db));
-		return NULL;
+		db = NULL;
 	}
 
 	return db;
