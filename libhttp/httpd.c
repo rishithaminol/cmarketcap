@@ -248,6 +248,7 @@ int __cb_main_thread(sqlite3 *db)
 			cb_arg->db = db;
 		}
 
+		/* @todo additional thread destruction should be started from here */
 		if (pthread_create(&httpd_thread, NULL, (void *)__cb_read_from_client,
 			(void *)cb_arg) != 0) {
 			CM_ERROR("pthread create error\n");
