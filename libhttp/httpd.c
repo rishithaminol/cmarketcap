@@ -203,7 +203,7 @@ int __cb_main_thread(sqlite3 *db)
 	struct sockaddr_in client_sockaddr;
 	socklen_t clilen = sizeof(struct sockaddr_in);;
 
-	pthread_t httpd_thread; /**! store thread ids */
+	pthread_t httpd_thread; /**! store thread id */
 
 	//pthread_detach(pthread_self());
 
@@ -235,6 +235,8 @@ int __cb_main_thread(sqlite3 *db)
 		exit(1);
 	}
 
+	/* at this stage 'httpd_sockfd', 'httpd_sockaddr', 'httpd_port', 'clilen'
+	 * settled up */
 	while (1) {
 		struct __cb_args *cb_arg = NULL;
 		sockfd = accept(httpd_sockfd, (struct sockaddr *)&client_sockaddr, &clilen);
