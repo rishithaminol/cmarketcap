@@ -27,6 +27,7 @@ void *__cb_update_database(void *db_)
 {
 	struct coin_entry_base *coin_base;
 	int col_rounds = 0; /**! holds the number of columns currently updated */
+	int col_one_hour = 0;
 	time_t time_diff;
 
 	sqlite3 *db = (sqlite3 *)db_;
@@ -37,6 +38,22 @@ void *__cb_update_database(void *db_)
 	do {
 		DEBUG_MSG("Starting to count..\n");
 		time_diff = time(NULL); /* === clock starts === */
+
+		if (col_rounds > 11) { /* already filled 12 columns */
+			int j;
+			for (j = col_rounds + col_one_hour; j > 11; j--) {
+				/* at the time of shifting, time_stamp data should be
+				 * shifted
+				 */
+				shift_columns(db, col_names[j], col_names[j - 1]);
+			}
+
+			col_rounds = 0; /* reset 5min columns. restart from first column */
+			col_one_hour++; /**! filled an 1 hour column */
+
+			if (col_one_hour == 36) /* 36th column filled */
+				col_one_hour = 0;
+		}
 
 		if (col_rounds > 0) { /* Executes from the second step of the loop */
 			int j;
@@ -51,7 +68,7 @@ void *__cb_update_database(void *db_)
 		coin_base = new_coin_entry_base();
 		fill_column(db, coin_base);
 		col_rounds = ++i; /* already filled a column */
-		DEBUG_MSG("col_rounds = %d\ni = %d\n", col_rounds, i);
+		DEBUG_MSG("col_rounds = %d i = %d\n", col_rounds, i);
 
 		free_entry_base(coin_base);
 		time_diff = time(NULL) - time_diff; /* === clock ends === */
