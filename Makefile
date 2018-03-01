@@ -1,9 +1,12 @@
-CFLAGS=-Wall -g -I/home/minol/.local/include -DCM_DEBUG_
-LDFLAGS=-L/home/minol/.local/lib -ljansson -lcurl -lsqlite3 -lpthread
+CFLAGS=-Wall -g $(shell pkg-config --cflags jansson sqlite3 libcurl) -DCM_DEBUG_
+LDFLAGS=$(shell pkg-config --libs jansson sqlite3 libcurl) -lpthread
+
+CC=gcc
 
 TARGETS=cmarketcap
 
 cmarketcap: httpd.o cm_debug.o sql_api.o json_parser.o cmarketcap.c
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 httpd.o: httpd.c httpd.h
 
