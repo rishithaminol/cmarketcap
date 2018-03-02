@@ -9,6 +9,7 @@
 #include "sql_api.h"
 #include "cm_debug.h"
 #include "httpd.h"
+#include "timer.h"
 
 /* @brief coin_history column map */
 char *col_names[] = {
@@ -34,25 +35,20 @@ void *__cb_update_database(void *db_)
 
 	pthread_detach(pthread_self());
 
-	int i = 0;
 	do {
 		DEBUG_MSG("Starting to count..\n");
 		time_diff = time(NULL); /* === clock starts === */
 
-		if (col_rounds > 11) { /* already filled 12 columns */
+		if (col_rounds == 12) { /* executes after filling 12 columns */
 			int j;
-			for (j = col_rounds + col_one_hour; j > 11; j--) {
-				/* at the time of shifting, time_stamp data should be
-				 * shifted
-				 */
+			for (j = col_rounds + col_one_hour; j > 11; j--)
 				shift_columns(db, col_names[j], col_names[j - 1]);
-			}
 
 			col_rounds = 0; /* reset 5min columns. restart from first column */
 			col_one_hour++; /**! filled an 1 hour column */
 
-			if (col_one_hour == 36) /* 36th column filled */
-				col_one_hour = 0;
+			if (col_one_hour == 24) /* 36th column filled */
+				col_one_hour--;
 		}
 
 		if (col_rounds > 0) { /* Executes from the second step of the loop */
@@ -67,17 +63,16 @@ void *__cb_update_database(void *db_)
 
 		coin_base = new_coin_entry_base();
 		fill_column(db, coin_base);
-		col_rounds = ++i; /* already filled a column */
-		DEBUG_MSG("col_rounds = %d i = %d\n", col_rounds, i);
-
+		col_rounds++; /* already filled a column */
+		DEBUG_MSG("col_rounds = %d\n", col_rounds);
 		free_entry_base(coin_base);
-		time_diff = time(NULL) - time_diff; /* === clock ends === */
 
+		time_diff = time(NULL) - time_diff; /* === clock ends === */
 		DEBUG_MSG("%d seconds spent, waiting %d seconds\n", time_diff, (300 - time_diff));
 		if ((300 - time_diff) < 0)
 			CM_ERROR("database update took too much time..\n");
 		else
-			sleep(300 - time_diff);
+			wait_countdown_timer("waiting -- ", 300 - time_diff);
 	} while (1);
 
 	pthread_exit(NULL);

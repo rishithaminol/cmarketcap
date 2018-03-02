@@ -5,8 +5,10 @@ CC=gcc
 
 TARGETS=cmarketcap
 
-cmarketcap: httpd.o cm_debug.o sql_api.o json_parser.o cmarketcap.c
+cmarketcap: timer.o httpd.o cm_debug.o sql_api.o json_parser.o cmarketcap.c
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+timer.o: timer.c timer.h
 
 httpd.o: httpd.c httpd.h
 
