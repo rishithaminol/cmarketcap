@@ -36,7 +36,7 @@ void parse_http_header(char *buff, struct myhttp_header *header)
 
 	/* fetch the first line. like 'GET /path HTTP/1.1' */
 	line = strtok_r(line, "\n", &buff);
-	DEBUG_MSG("line = %s\n", line);
+	DEBUG_MSG("request line = \"%s\"\n", line);
 
 	/* parse line */
 	token = strtok_r(line, " ", &line);
@@ -46,18 +46,7 @@ void parse_http_header(char *buff, struct myhttp_header *header)
 	token = strtok_r(line, " ", &line);
 	strcpy(header->protocol, token);
 
-	/* find request file type */
-	token = strtok_r(buff, "\n", &buff);
-	if ((token = strstr(buff, "Accept:")) != NULL) {
-		token = strtok_r(token, "\n", &token);
-	}
-
-	/* pay attention. No error but unwanted coding. */
-	token = strtok_r(token, " ", &token); /* 'Accept:' */
-	token = token + strlen(token) + 1;
-	token = strtok_r(token, ",", &token);
-	DEBUG_MSG("token = %s\n", token);
-	strcpy(header->type, token);
+	strcpy(header->type, "text/html");
 }
 
 int check_http_header(struct myhttp_header *header)
