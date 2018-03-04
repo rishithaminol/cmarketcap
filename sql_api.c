@@ -128,7 +128,6 @@ struct coin_status_base *fetch_duration(sqlite3 *db, const char *col1,
 		struct coin_status *s;
 
 		rc = sqlite3_step(stmt_1);
-
 		if(rc == SQLITE_ROW) { /* new row of data ready */
 			ret_col1 = sqlite3_column_int(stmt_1, 0);
 			ret_col2 = sqlite3_column_int(stmt_1, 1);
@@ -141,18 +140,24 @@ struct coin_status_base *fetch_duration(sqlite3 *db, const char *col1,
 				ret_col2);
 			append_coin_status(coin_stat_base, s);
 
-			DEBUG_MSG("%s:%d:%d\n", ret_coin_key, ret_col1, ret_col2);
-		} else if (rc == SQLITE_ERROR) {
-			printf("SQLITE3 Error occured\n");
-		} else {
-			break; /* last row reached */
+//			DEBUG_MSG("%s:%d:%d\n", ret_coin_key, ret_col1, ret_col2);
+		} else if (rc == SQLITE_DONE) { /* sqlite3_step() has finished executing */
+			DEBUG_MSG("sqlite3 execution done\n");
+			break;
+		} else /*if (rc == SQLITE_ERROR)*/ {
+			CM_ERROR("%s\n", sqlite3_errmsg(db));
+			break;
 		}
 	}
 
 	UNLOCK_DB_ACCESS;
 
+	sqlite3_reset(stmt_1);
 	sqlite3_finalize(stmt_1);
 	sqlite3_free(sql);
+
+	if (coin_stat_base->first == NULL)
+		CM_ERROR("Everything is NULL\n");
 
 	return coin_stat_base;
 }
@@ -182,14 +187,14 @@ void fill_column(sqlite3 *db, struct coin_entry_base *coin_base)/*,
 
 	/* before filling set all values in min_0 column to '-1' */
 	sql = sqlite3_mprintf(
-		"UPDATE coin_history SET %s = %d;",	col, -1);
+		"UPDATE coin_history SET %s = %d",	col, -1);
 
-	sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0);
-
-	if (!(sqlite3_step(stmt_1) != SQLITE_ROW))
+	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK)
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
 
 	DEBUG_MSG("setting all values to -1\n");
+	if (sqlite3_step(stmt_1) != SQLITE_DONE)
+		CM_ERROR("%s\n", sqlite3_errmsg(db));
 
 	sqlite3_free(sql);
 	sqlite3_finalize(stmt_1);
@@ -199,12 +204,16 @@ void fill_column(sqlite3 *db, struct coin_entry_base *coin_base)/*,
 			"UPDATE coin_history SET %s = %d WHERE coin_key = '%s'",
 			col, atoi(t->rank), t->id);
 
-		sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0);
+		if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK) {
+			CM_ERROR("%s\n", sqlite3_errmsg(db));
+		}
 
-		if (!(sqlite3_step(stmt_1) == SQLITE_DONE))
+//		DEBUG_MSG("%s\n", sql);
+		if (sqlite3_step(stmt_1) != SQLITE_DONE) {
 			CM_ERROR("%s\n", sqlite3_errmsg(db)); /* what happens if
 													 new coin arrives */
-		DEBUG_MSG("%s\n", sql);
+			break;
+		}
 
 		sqlite3_free(sql);
 		sqlite3_finalize(stmt_1);
@@ -213,15 +222,14 @@ void fill_column(sqlite3 *db, struct coin_entry_base *coin_base)/*,
 	}
 
 	sql = sqlite3_mprintf(
-		"UPDATE time_stamps SET time_stamp = %lu WHERE column_name = '%s';",
+		"UPDATE time_stamps SET time_stamp = %lu WHERE column_name = '%s'",
 		 coin_base->derived_time, col);
 
 	sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0); /* update 'time_stamp' */
 
-	if (!(sqlite3_step(stmt_1) == SQLITE_DONE))
+//	DEBUG_MSG("updating time stamps %s\n", sql);
+	if (sqlite3_step(stmt_1) != SQLITE_DONE)
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
-
-	DEBUG_MSG("updating time stamps %s\n", sql);
 
 	UNLOCK_DB_ACCESS;
 
@@ -246,7 +254,7 @@ void shift_columns(sqlite3 *db, const char *col1, const char *col2)
 		exit(EXIT_FAILURE);
 	}
 
-	if (!(sqlite3_step(stmt_1) != SQLITE_ROW)) {
+	if (sqlite3_step(stmt_1) != SQLITE_DONE) {
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
 		exit(EXIT_FAILURE);
 	}
@@ -270,7 +278,7 @@ void shift_columns(sqlite3 *db, const char *col1, const char *col2)
 	}
 
 	/* This function will never return SQLITE_OK. */
-	if (!(sqlite3_step(stmt_1) != SQLITE_ROW)) {
+	if (sqlite3_step(stmt_1) != SQLITE_DONE) {
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
 		exit(EXIT_FAILURE);
 	}
@@ -320,11 +328,10 @@ int fetch_last_updated_column(sqlite3 *db)
  * @todo This function should have a way of updating newly arrived coins.
  * 		 And there should be a way of informing dropped coins
  */
-int init_coin_history_table(sqlite3 *db, struct coin_entry_base *coin_base)
+void init_coin_history_table(sqlite3 *db, struct coin_entry_base *coin_base)
 {
 	char *sql;
 	sqlite3_stmt *stmt_1;
-	int retval;
 	struct coin_entry *t;
 
 	LOCK_DB_ACCESS;
@@ -336,11 +343,8 @@ int init_coin_history_table(sqlite3 *db, struct coin_entry_base *coin_base)
 
 		sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0);
 
-		if (!(sqlite3_step(stmt_1) == SQLITE_DONE)) {
+		if (sqlite3_step(stmt_1) != SQLITE_DONE)
 			CM_ERROR("%s\n", sqlite3_errmsg(db));
-			retval = -1;
-			break;
-		}
 
 		DEBUG_MSG("%s\n", sql);
 
@@ -351,8 +355,6 @@ int init_coin_history_table(sqlite3 *db, struct coin_entry_base *coin_base)
 	}
 
 	UNLOCK_DB_ACCESS;
-
-	return retval;
 }
 
 sqlite3 *open_main_db(void)

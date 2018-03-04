@@ -28,7 +28,7 @@ extern pthread_mutex_t sql_db_access;
 extern sqlite3 *open_main_db(void);
 extern void close_main_db(sqlite3 *db);
 
-extern int init_coin_history_table(sqlite3 *db, struct coin_entry_base *coin_base);
+extern void init_coin_history_table(sqlite3 *db, struct coin_entry_base *coin_base);
 extern int fetch_last_updated_column(sqlite3 *db);
 
 extern void shift_columns(sqlite3 *db, const char *col1, const char *col2);
