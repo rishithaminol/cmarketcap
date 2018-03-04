@@ -5,8 +5,11 @@ CC=gcc
 
 TARGETS=cmarketcap
 
-cmarketcap: timer.o httpd.o cm_debug.o sql_api.o json_parser.o cmarketcap.c
+cmarketcap: http_parser.o timer.o httpd.o cm_debug.o sql_api.o json_parser.o cmarketcap.c
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+http_parser.o: http_parser.c http_parser.h
+	$(CC) $(CFLAGS) -DHTTP_PARSER_STRICT=1 -c http_parser.c
 
 timer.o: timer.c timer.h
 
