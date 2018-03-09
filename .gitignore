@@ -1,3 +1,5 @@
 *.o
 cmarketcap
 *.db-journal
+
+test/url_token_test

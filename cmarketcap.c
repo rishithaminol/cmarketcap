@@ -93,6 +93,8 @@ void *__cb_update_database(void *db_)
 	pthread_exit(NULL);
 }
 
+#ifndef CM_TESTING_
+
 int main(int argc, char *argv[])
 {
 	sqlite3 *db;
@@ -117,3 +119,6 @@ int main(int argc, char *argv[])
 
 	return 0;
 } /* main */
+
+
+#endif
