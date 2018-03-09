@@ -91,21 +91,10 @@ void send_header(int sockfd, char *code, char *type)
 	send(sockfd, buf, strlen(buf), 0);
 }
 
-/* @brief null terminated key and values */
-struct uri_entry {
-	size_t index;
-	char *key;
-	char *value;
-
-	struct uri_entry *next;
-};
-
-struct uri_base {
-	size_t entry_count;
-	struct uri_entry *first;
-	struct uri_entry *last;
-};
-
+/*! \addtogroup url_tokenization
+ *  url tokenization mechanism
+ *  @{
+ */
 static struct uri_base *init_uri_base()
 {
 	struct uri_base *x = (struct uri_base *)malloc(sizeof(struct uri_base));
@@ -151,7 +140,7 @@ static struct uri_entry *mk_uri_entry(char *uri_e)
 		return NULL;
 	}
 
-	*(value--) = '\0';
+	*(value - 1) = '\0';
 	key = uri_e;
 
 	x = init_uri_entry();
@@ -248,10 +237,11 @@ void print_uri_base(struct uri_base *ub)
 
 	t = ub->first;
 	while (t != NULL) {
-		printf("index: %d, \"%s\":\"%s\"\n", t->index, t->key, t->value);
+		printf("index: %lu, \"%s\":\"%s\"\n", t->index, t->key, t->value);
 		t = t->next;
 	}
 }
+/*! @} */ /* uri_tokenization */
 
 /* @brief Send response to the user.
  *

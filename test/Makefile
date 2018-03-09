@@ -1,8 +1,8 @@
 CURR_WORK_DIR=$(shell pwd)
 PREV_DIR=$(shell dirname $(CURR_WORK_DIR))
 
-CFLAGS=-Wall -g -DCM_DEBUG_ -DCM_TESTING_ -I$(PREV_DIR)
-LDFLAGS=-lpthread -lsqlite3 -lcurl -ljansson
+CFLAGS=-Wall -g $(shell pkg-config --cflags jansson sqlite3 libcurl) -DCM_DEBUG_ -DCM_TESTING_ -I$(PREV_DIR)
+LDFLAGS=$(shell pkg-config --libs jansson sqlite3 libcurl) -lpthread
 
 CC=gcc
 
