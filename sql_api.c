@@ -289,31 +289,56 @@ void shift_columns(sqlite3 *db, const char *col1, const char *col2)
 	sqlite3_finalize(stmt_1);
 }
 
-/* @brief Fetch last updated row of coin_history */
-int fetch_last_updated_column(sqlite3 *db)
+/* @brief Fetch number of coins currently in coin_history table */
+size_t fetch_number_of_coins(sqlite3 *db)
 {
 	char *sql;
 	sqlite3_stmt *res_1;
-	int retval;
+	size_t retval = 0;
 
 	LOCK_DB_ACCESS;
 
 	sql = sqlite3_mprintf(
-		"SELECT last_updated_min_col "
-		"FROM last_update_info "
-		"WHERE _id = 'basic_info';");
+		"SELECT info_type, info_ "
+		"FROM last_update_infomation "
+		"WHERE info_type = 'number_of_coins';");
 
 	DEBUG_MSG("%s\n", sql);
 
-	if (sqlite3_prepare_v2(db, sql, -1, &res_1, 0) != SQLITE_OK) {
+	if (sqlite3_prepare_v2(db, sql, -1, &res_1, 0) != SQLITE_OK)
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
-		retval = -1;
-	}
 
 	if (sqlite3_step(res_1) == SQLITE_ROW)
-		retval = (int)sqlite3_column_int(res_1, 0);
-	else
-		retval = -1;
+		retval = sqlite3_column_int(res_1, 1);
+
+	UNLOCK_DB_ACCESS;
+
+	sqlite3_free(sql);
+	sqlite3_finalize(res_1);
+
+	return retval;
+}
+
+/* @brief Fetch number of coins currently in coin_history table */
+size_t update_number_of_coins(sqlite3 *db, size_t coins)
+{
+	char *sql;
+	sqlite3_stmt *res_1;
+	size_t retval = 0;
+
+	LOCK_DB_ACCESS;
+
+	sql = sqlite3_mprintf("UPDATE last_update_infomation "
+		"SET info_ = %d "
+		"WHERE info_type = 'number_of_coins';", (int)coins);
+
+	DEBUG_MSG("%s\n", sql);
+
+	if (sqlite3_prepare_v2(db, sql, -1, &res_1, 0) != SQLITE_OK)
+		CM_ERROR("%s\n", sqlite3_errmsg(db));
+
+	if (sqlite3_step(res_1) != SQLITE_DONE)
+		CM_ERROR("%s\n", sqlite3_errmsg(db));
 
 	UNLOCK_DB_ACCESS;
 

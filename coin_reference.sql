@@ -87,4 +87,9 @@ CREATE TABLE IF NOT EXISTS `coin_history` (
 	`hr_24`	INTEGER,
 	PRIMARY KEY(`coin_key`)
 );
+CREATE TABLE "last_update_infomation" (
+	`info_type`	TEXT,
+	`info_`	INTEGER
+);
+INSERT INTO `last_update_infomation` (info_type,info_) VALUES ('number_of_coins',0);
 COMMIT;
