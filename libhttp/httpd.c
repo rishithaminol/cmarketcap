@@ -101,15 +101,16 @@ void send_json_response(int sockfd, struct myhttp_header *header, sqlite3 *db)
 {
 	char code[4];
 	struct coin_status_base *sb;
-	struct coin_status *t;
+	struct coin_status *t = NULL;
 	char tempstr[200];
+	char *x = NULL;
+	int full_rank = 0;
 
 	strcpy(code, "200");
 	send_header(sockfd, code, "application/json");
-	/* SQL output as json */
-	sb = fetch_duration(db, "min_0", "min_5");
 
-	t = sb->first;
+	if ((x = strstr(header->url, "rank="))) {
+		x = x + strlen("rank=");
 
 		LOCK_SHIFT_COLUMN_LOCKER;
 		if (strcmp(x, "full") == 0) {
@@ -121,20 +122,20 @@ void send_json_response(int sockfd, struct myhttp_header *header, sqlite3 *db)
 		UNLOCK_SHIFT_COLUMN_LOCKER;
 		t = sb->first;
 	}
+
+	if (t == NULL)
+	{
+		write(sockfd, "{\"error\": \"error occured\"}\n", strlen("{\"error\": \"error occured\"}\n"));
+		return;
+	}
 	while (t != NULL) {
-		sprintf(tempstr, "\t{\n"
-			   "\t\t\"coin_id\": \"%s\",\n"
-			   "\t\t\"%s_rank\": %d,\n"
-			   "\t\t\"%s_rank\": %d\n"
-			   "\t}",
-			   t->coin_id, t->col1, t->col1_rank, t->col2, t->col2_rank);
+		if (full_rank > 0)
+			sprintf(tempstr, "#%d:%s\n", t->col1_rank, t->coin_id);
+		else
+			sprintf(tempstr, "#%s: %d (%d)\n", t->coin_id, t->col1_rank, t->col2_rank);
 		write(sockfd, tempstr, strlen(tempstr));
 		t = t->next;
-
-		if(t != NULL)
-			write(sockfd, ",\n", strlen(",\n"));
 	}
-	write(sockfd, "]\n", strlen("]\n"));
 
 	free_coin_status_base(sb);
 } /* send_json_response */

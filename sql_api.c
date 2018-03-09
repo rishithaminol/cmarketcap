@@ -3,6 +3,7 @@
 #include <sqlite3.h>
 #include <string.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "sql_api.h"
 #include "cm_debug.h"
@@ -56,10 +57,10 @@ struct coin_status *mk_coin_status(const char *coin_id, const char *col1,
 
 	coin_stat = (struct coin_status *)malloc(sizeof(struct coin_status));
 
-	coin_stat->coin_id = strdup(coin_id);
-	coin_stat->col1 = strdup(col1);
+	coin_stat->coin_id = (coin_id != NULL) ? strdup(coin_id) : NULL;
+	coin_stat->col1 = (col1 != NULL) ? strdup(col1) : NULL;
 	coin_stat->col1_rank = col1_rank;
-	coin_stat->col2 = strdup(col2);
+	coin_stat->col2 = (col2 != NULL) ? strdup(col2) : NULL;
 	coin_stat->col2_rank = col2_rank;
 
 	coin_stat->next = NULL;
@@ -300,6 +301,8 @@ void fill_column(sqlite3 *db, struct coin_entry_base *coin_base)/*,
 
 	sqlite3_free(sql);
 	sqlite3_finalize(stmt_1);
+
+	sqlite3_db_cacheflush(db);
 }
 
 /* @brief Copy one column to another. Copy 'col2' into 'col1' */
@@ -347,6 +350,8 @@ void shift_columns(sqlite3 *db, const char *col1, const char *col2)
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
 		exit(EXIT_FAILURE);
 	}
+
+	sleep(3);
 
 	UNLOCK_DB_ACCESS;
 
