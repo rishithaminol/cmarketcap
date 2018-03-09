@@ -13,9 +13,13 @@
 #include "cm_debug.h"
 #include "sql_api.h"
 #include "httpd.h"
+#include "cmarketcap.h"
 
 #define RD_BUFF_MAX 1024
 #define CLIENT_MAX  10
+/**! this locks others while shift_columns in action. */
+#define LOCK_SHIFT_COLUMN_LOCKER pthread_mutex_lock(&shift_column_locker)
+#define UNLOCK_SHIFT_COLUMN_LOCKER pthread_mutex_unlock(&shift_column_locker)
 
 void error_handle(char *err)
 {
@@ -109,7 +113,16 @@ void send_json_response(int sockfd, struct myhttp_header *header, sqlite3 *db)
 
 	t = sb->first;
 
-	write(sockfd, "[\n", strlen("[\n"));
+		LOCK_SHIFT_COLUMN_LOCKER;
+		if (strcmp(x, "full") == 0) {
+			sb = fetch_entire_rank(db);
+			full_rank = 1;
+		} else {
+			sb = fetch_duration(db, "min_0", x);
+		}
+		UNLOCK_SHIFT_COLUMN_LOCKER;
+		t = sb->first;
+	}
 	while (t != NULL) {
 		sprintf(tempstr, "\t{\n"
 			   "\t\t\"coin_id\": \"%s\",\n"

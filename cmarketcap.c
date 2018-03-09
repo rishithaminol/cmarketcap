@@ -11,6 +11,12 @@
 #include "httpd.h"
 #include "timer.h"
 
+pthread_mutex_t shift_column_locker = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK_SHIFT_COLUMN_LOCKER pthread_mutex_lock(&shift_column_locker)
+#define UNLOCK_SHIFT_COLUMN_LOCKER pthread_mutex_unlock(&shift_column_locker)
+
+static size_t number_of_coins = 0;
+
 /* @brief coin_history column map */
 char *col_names[] = {
 	"min_0", "min_5", "min_10", "min_15", "min_20", "min_25", "min_30",
@@ -39,6 +45,7 @@ void *__cb_update_database(void *db_)
 		DEBUG_MSG("Starting to count..\n");
 		time_diff = time(NULL); /* === clock starts === */
 
+		LOCK_SHIFT_COLUMN_LOCKER;
 		if (col_rounds == 12) { /* executes after filling 12 columns */
 			int j;
 			for (j = col_rounds + col_one_hour; j > 11; j--)
@@ -62,10 +69,18 @@ void *__cb_update_database(void *db_)
 		}
 
 		coin_base = new_coin_entry_base();
+		if (coin_base->entry_count > number_of_coins) /* number of coins currently fetched has a mismatch */
+		{
+			number_of_coins = coin_base->entry_count;
+			init_coin_history_table(db, coin_base);
+			update_number_of_coins(db, number_of_coins);
+		}
 		fill_column(db, coin_base);
 		col_rounds++; /* already filled a column */
-		DEBUG_MSG("col_rounds = %d\n", col_rounds);
+		DEBUG_MSG("col_rounds = %d, col_one_hour = %d\n", col_rounds, col_one_hour);
 		free_entry_base(coin_base);
+		
+		UNLOCK_SHIFT_COLUMN_LOCKER;
 
 		time_diff = time(NULL) - time_diff; /* === clock ends === */
 		DEBUG_MSG("%d seconds spent, waiting %d seconds\n", time_diff, (300 - time_diff));
@@ -84,6 +99,7 @@ int main(int argc, char *argv[])
 	pthread_t update_database_id;
 
 	pthread_mutex_init(&sql_db_access, NULL);
+	pthread_mutex_init(&shift_column_locker, NULL);
 
 	prog_name = *argv;
 
