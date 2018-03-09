@@ -1,11 +1,12 @@
 #ifndef HTTPD_H_
 #define HTTPD_H_
 
+#include <sqlite3.h>
+
 struct myhttp_header {
 	char method[5];
-	char filename[200];
+	char url[200];
 	char protocol[10];
-	char type[100];
 };
 
 extern int __cb_main_thread(sqlite3 *db);

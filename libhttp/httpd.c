@@ -46,11 +46,9 @@ void parse_http_header(char *buff, struct myhttp_header *header)
 	token = strtok_r(line, " ", &line);
 	strcpy(header->method, token);
 	token = strtok_r(line, " ", &line);
-	strcpy(header->filename, token);
+	strcpy(header->url, token);
 	token = strtok_r(line, " ", &line);
 	strcpy(header->protocol, token);
-
-	strcpy(header->type, "text/html");
 }
 
 int check_http_header(struct myhttp_header *header)
@@ -171,7 +169,7 @@ void *__cb_read_from_client(void *cb_arg)
 			break;
 		} else {
 			if (check_http_header(&header) < 0) {
-				send_header(sockfd, "400", header.type); /* bad request */
+				send_header(sockfd, "400", "text/html"); /* bad request */
 				break;
 			}
 			parse_http_header(buffer, &header); /**! parse_http_header */
