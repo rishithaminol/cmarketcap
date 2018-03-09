@@ -162,6 +162,71 @@ struct coin_status_base *fetch_duration(sqlite3 *db, const char *col1,
 	return coin_stat_base;
 }
 
+/**
+ * @brief Return two columns of data as a difference of two times. 
+ *
+ * col1 = min_0, col2 = min_10. behaves like new_coin_entry_base 
+ *
+ * @return 'struct coin_status_base *''
+ */
+struct coin_status_base *fetch_entire_rank(sqlite3 *db)
+{
+	char *sql;
+	sqlite3_stmt *stmt_1;
+	/* @brief return row values */
+	char *ret_coin_key;
+	int ret_col_rank;
+
+	struct coin_status_base *coin_stat_base = init_coin_status_base();
+
+	LOCK_DB_ACCESS;
+
+	sql = sqlite3_mprintf("SELECT coin_key, min_0 "
+						  "FROM coin_history "
+						  "WHERE min_0 > 0 "
+						  "ORDER BY min_0;");
+
+	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK)
+		CM_ERROR("%s\n", sqlite3_errmsg(db));
+
+	while (1) {
+		int rc;
+		struct coin_status *s;
+
+		rc = sqlite3_step(stmt_1);
+		if(rc == SQLITE_ROW) { /* new row of data ready */
+			ret_coin_key = (char *)sqlite3_column_text(stmt_1, 0);
+			ret_col_rank = sqlite3_column_int(stmt_1, 1);
+
+			s = mk_coin_status((const char *)ret_coin_key,
+				NULL,
+				ret_col_rank,
+				NULL,
+				0);
+			append_coin_status(coin_stat_base, s);
+
+//			DEBUG_MSG("%s:%d:%d\n", ret_coin_key, ret_col1, ret_col2);
+		} else if (rc == SQLITE_DONE) { /* sqlite3_step() has finished executing */
+			DEBUG_MSG("sqlite3 execution done\n");
+			break;
+		} else /*if (rc == SQLITE_ERROR)*/ {
+			CM_ERROR("%s\n", sqlite3_errmsg(db));
+			break;
+		}
+	}
+
+	UNLOCK_DB_ACCESS;
+
+	sqlite3_reset(stmt_1);
+	sqlite3_finalize(stmt_1);
+	sqlite3_free(sql);
+
+	if (coin_stat_base->first == NULL)
+		CM_ERROR("Everything is NULL\n");
+
+	return coin_stat_base;
+}
+
 /** @brief Fill the given column.
  *
  * Updates the 'time_stamp' table. parameter col always
