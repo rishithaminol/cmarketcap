@@ -242,9 +242,9 @@ struct coin_status_base *fetch_entire_rank(sqlite3 *db)
 void fill_column(sqlite3 *db, struct coin_entry_base *coin_base)/*,
 	const char *col)*/
 {
-	char *sql;
+	char *sql, *sql2;
 	struct coin_entry *t;
-	sqlite3_stmt *stmt_1;
+	sqlite3_stmt *stmt_1, *stmt_2;
 	const char *col = "min_0";
 
 	t = coin_base->first;
@@ -265,7 +265,34 @@ void fill_column(sqlite3 *db, struct coin_entry_base *coin_base)/*,
 	sqlite3_free(sql);
 	sqlite3_finalize(stmt_1);
 
+	/* @todo performance optimization needed */
 	while (t != NULL) {
+		sql = sqlite3_mprintf(
+			"SELECT min_0 FROM coin_history WHERE coin_key='%s'", t->id);
+
+		if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK) {
+			CM_ERROR("%s\n", sqlite3_errmsg(db));
+		}
+
+		if (sqlite3_step(stmt_1) != SQLITE_ROW) { /* New coin arrived */
+			sql2 = sqlite3_mprintf(
+			"INSERT INTO coin_history (coin_key) VALUES ('%s')", t->id);
+
+			if (sqlite3_prepare_v2(db, sql2, -1, &stmt_2, 0) != SQLITE_OK) {
+				CM_ERROR("%s\n", sqlite3_errmsg(db));
+			}
+
+			if (sqlite3_step(stmt_2) != SQLITE_DONE) {
+				CM_ERROR("%s\n", sqlite3_errmsg(db));
+			}
+
+			sqlite3_free(sql2);
+			sqlite3_finalize(stmt_2);
+		}
+
+		sqlite3_free(sql);
+		sqlite3_finalize(stmt_1);
+
 		sql = sqlite3_mprintf(
 			"UPDATE coin_history SET %s = %d WHERE coin_key = '%s'",
 			col, atoi(t->rank), t->id);
