@@ -39,15 +39,16 @@ INSERT INTO `time_stamps` (column_name,time_stamp) VALUES
  ('hr_21',NULL),
  ('hr_22',NULL),
  ('hr_23',NULL),
- ('hr_24',NULL);
-CREATE TABLE IF NOT EXISTS `last_update_info` (
-	`_id`	TEXT,
-	`last_updated_min_col`	INTEGER,
-	`last_update_hr_col`	INTEGER,
-	`last_update_time`	TEXT,
-	`number_of_coins`	INTEGER
-);
-CREATE TABLE IF NOT EXISTS `coin_history` (
+ ('hr_24',NULL),
+ ('day_1', NULL),
+('day_2', NULL),
+('day_3', NULL),
+('day_4', NULL),
+('day_5', NULL),
+('day_6', NULL),
+('day_7', NULL);
+
+CREATE TABLE "coin_history" (
 	`coin_key`	TEXT UNIQUE,
 	`min_0`	INTEGER,
 	`min_5`	INTEGER,
@@ -85,7 +86,14 @@ CREATE TABLE IF NOT EXISTS `coin_history` (
 	`hr_22`	INTEGER,
 	`hr_23`	INTEGER,
 	`hr_24`	INTEGER,
-	PRIMARY KEY(`coin_key`)
+	`day_1`	INTEGER,
+	`day_2`	INTEGER,
+	`day_3`	INTEGER,
+	`day_4`	INTEGER,
+	`day_5`	INTEGER,
+	`day_6`	INTEGER,
+	`day_7`	INTEGER,
+	PRIMARY KEY(coin_key)
 );
 CREATE TABLE "last_update_infomation" (
 	`info_type`	TEXT,

@@ -436,65 +436,6 @@ void shift_columns(sqlite3 *db, const char *col1, const char *col2)
 	sqlite3_finalize(stmt_1);
 }
 
-/* @brief Fetch number of coins currently in coin_history table */
-size_t fetch_number_of_coins(sqlite3 *db)
-{
-	char *sql;
-	sqlite3_stmt *res_1;
-	size_t retval = 0;
-
-	LOCK_DB_ACCESS;
-
-	sql = sqlite3_mprintf(
-		"SELECT info_type, info_ "
-		"FROM last_update_infomation "
-		"WHERE info_type = 'number_of_coins';");
-
-	DEBUG_MSG("%s\n", sql);
-
-	if (sqlite3_prepare_v2(db, sql, -1, &res_1, 0) != SQLITE_OK)
-		CM_ERROR("%s\n", sqlite3_errmsg(db));
-
-	if (sqlite3_step(res_1) == SQLITE_ROW)
-		retval = sqlite3_column_int(res_1, 1);
-
-	UNLOCK_DB_ACCESS;
-
-	sqlite3_free(sql);
-	sqlite3_finalize(res_1);
-
-	return retval;
-}
-
-/* @brief Fetch number of coins currently in coin_history table */
-size_t update_number_of_coins(sqlite3 *db, size_t coins)
-{
-	char *sql;
-	sqlite3_stmt *res_1;
-	size_t retval = 0;
-
-	LOCK_DB_ACCESS;
-
-	sql = sqlite3_mprintf("UPDATE last_update_infomation "
-		"SET info_ = %d "
-		"WHERE info_type = 'number_of_coins';", (int)coins);
-
-	DEBUG_MSG("%s\n", sql);
-
-	if (sqlite3_prepare_v2(db, sql, -1, &res_1, 0) != SQLITE_OK)
-		CM_ERROR("%s\n", sqlite3_errmsg(db));
-
-	if (sqlite3_step(res_1) != SQLITE_DONE)
-		CM_ERROR("%s\n", sqlite3_errmsg(db));
-
-	UNLOCK_DB_ACCESS;
-
-	sqlite3_free(sql);
-	sqlite3_finalize(res_1);
-
-	return retval;
-}
-
 /** @brief Initialize 'coin_history' table's 'coin_id' field
  *
  * @todo This function should have a way of updating newly arrived coins.

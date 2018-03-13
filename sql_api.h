@@ -29,9 +29,7 @@ extern sqlite3 *open_main_db(void);
 extern void close_main_db(sqlite3 *db);
 
 extern void init_coin_history_table(sqlite3 *db, struct coin_entry_base *coin_base);
-extern size_t fetch_number_of_coins(sqlite3 *db);
 extern struct coin_status_base *fetch_entire_rank(sqlite3 *db);
-extern size_t update_number_of_coins(sqlite3 *db, size_t coins);
 
 extern void shift_columns(sqlite3 *db, const char *col1, const char *col2);
 extern void fill_column(sqlite3 *db, struct coin_entry_base *coin_base);
