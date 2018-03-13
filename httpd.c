@@ -135,7 +135,7 @@ static struct uri_entry *mk_uri_entry(char *uri_e)
 	char *key;
 
 	value = strchr(uri_e, '=') + 1;
-	if (!value) {
+	if (value == NULL) {
 		CM_ERROR("Invalid uri_entry\n");
 		return NULL;
 	}
@@ -175,6 +175,7 @@ static void append_uri_entry(struct uri_base *ub, struct  uri_entry *ue)
  * and pass 'key=value' like strings to 'mk_uri_entry()'
  *
  * @param uri This string gets modified.
+ * @return returns 'NULL' on error
  */
 struct uri_base *tokenize_uri(const char *uri)
 {
@@ -187,14 +188,15 @@ struct uri_base *tokenize_uri(const char *uri)
 
 	strncpy(uri_, uri, MAX_URI_SIZE);
 
-	x = strchr(uri_, '?') + 1; /**! start of the url options */
+	x = strchr(uri_, '?'); /**! start of the url options */
 							  /* 'hello=world&rishitha=minol' */
-	if (!x) {
+	if (x == NULL) {
 		CM_ERROR("path string\n");
 		free(uri_base);
 		return NULL;
 	}
 
+	x++;
 	while (x != NULL) {
 		y = x;
 		x = strchr(x, '&');
