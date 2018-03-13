@@ -40,5 +40,6 @@ extern struct coin_status_base *fetch_duration(sqlite3 *db, const char *col1,
 	const char *col2);
 extern void print_coin_status_base(struct coin_status_base *sb);
 extern void free_coin_status_base(struct coin_status_base *sb);
+extern void fetch_range_level1(const char *coin_id, sqlite3 *db, int sockfd);
 
 #endif

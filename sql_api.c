@@ -163,6 +163,56 @@ struct coin_status_base *fetch_duration(sqlite3 *db, const char *col1,
 	return coin_stat_base;
 }
 
+/* min_0, min_5, min_10, min_15, min_30, hr_1, hr_4, hr_6, hr_12, hr_24 */
+void fetch_range_level1(const char *coin_id, sqlite3 *db, int sockfd)
+{
+	char *sql;
+	sqlite3_stmt *stmt_1;
+	int rc;
+	char tempstr[255];
+
+	LOCK_DB_ACCESS;
+
+	sql = sqlite3_mprintf("SELECT min_0, min_5, min_10, min_15, min_30, hr_1, hr_4, hr_6, hr_12, hr_24 "
+						  "FROM coin_history "
+						  "WHERE coin_key = '%s';", coin_id);
+
+	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK)
+		CM_ERROR("%s\n", sqlite3_errmsg(db));
+
+	rc = sqlite3_step(stmt_1);
+	if(rc == SQLITE_ROW) { /* new row of data ready */
+		sprintf(tempstr, "{ "
+			   "\t\"min_0\": %d, "
+			   "\t\"min_5\": %d, "
+			   "\t\"min_10\": %d, "
+			   "\t\"min_15\": %d, "
+			   "\t\"min_30\": %d, "
+			   "\t\"hr_1\": %d, "
+			   "\t\"hr_4\": %d, "
+			   "\t\"hr_6\": %d, "
+			   "\t\"hr_12\": %d, "
+			   "\t\"hr_24\": %d "
+			   "}",
+			   sqlite3_column_int(stmt_1, 0),
+			   sqlite3_column_int(stmt_1, 1),
+			   sqlite3_column_int(stmt_1, 2),
+			   sqlite3_column_int(stmt_1, 3),
+			   sqlite3_column_int(stmt_1, 4),
+			   sqlite3_column_int(stmt_1, 5),
+			   sqlite3_column_int(stmt_1, 6),
+			   sqlite3_column_int(stmt_1, 7),
+			   sqlite3_column_int(stmt_1, 8),
+			   sqlite3_column_int(stmt_1, 9));
+		write(sockfd, tempstr, strlen(tempstr));
+	}
+
+	UNLOCK_DB_ACCESS;
+
+	sqlite3_finalize(stmt_1);
+	sqlite3_free(sql);
+}
+
 /**
  * @brief Return two columns of data as a difference of two times. 
  *

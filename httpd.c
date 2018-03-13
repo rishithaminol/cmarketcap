@@ -257,28 +257,61 @@ void send_json_response(int sockfd, struct myhttp_header *header, sqlite3 *db)
 	struct coin_status_base *sb;
 	struct coin_status *t = NULL;
 	char tempstr[200];
-	char *x = NULL;
 	int full_rank = 0;
 
 	strcpy(code, "200");
 	send_header(sockfd, code, "application/json");
 
-	if ((x = strstr(header->url, "rank="))) {
-		x = x + strlen("rank=");
+	/* example url sets 
+	 * 
+	 * /home/path?rank=full
+	 * /home/path?coinid=bitcoin&start=min_5&limit=min_30
+	 */
+	struct uri_base *tokens;
+	struct uri_entry *te_entry;
+	tokens = tokenize_uri(header->url);
+	if (tokens == NULL) {
+		CM_ERROR("tokenization malfunction\n");
+		return;
+	}
 
+	te_entry = tokens->first;
+	if (strcmp(te_entry->key, "rank") == 0) {
 		LOCK_SHIFT_COLUMN_LOCKER;
-		if (strcmp(x, "full") == 0) {
+		if (strcmp(te_entry->value, "full") == 0) { /* /home/path/?rank=full */
 			sb = fetch_entire_rank(db);
 			full_rank = 1;
-		} else {
-			sb = fetch_duration(db, "min_0", x);
+		} else { /* /home/path/?rank=min_5 ... etc.. */
+			sb = fetch_duration(db, "min_0", te_entry->value);
 		}
 		UNLOCK_SHIFT_COLUMN_LOCKER;
 		t = sb->first;
-	}
+	} else if (strcmp(te_entry->key, "coinid") == 0) { /* /home/path/?coinid=bitcoin&range=1 or 2 */
+		char *coin_id = te_entry->value;
+		te_entry = te_entry->next;
 
-	if (t == NULL)
-	{
+		if (strcmp(te_entry->key, "range") == 0) {
+			char *range = te_entry->value;
+
+			if (strcmp(range, "1") == 0){
+				LOCK_SHIFT_COLUMN_LOCKER;
+				fetch_range_level1(coin_id, db, sockfd);
+				UNLOCK_SHIFT_COLUMN_LOCKER;
+				free_uri_base(tokens);
+
+				return;
+			}
+		} else {
+			CM_ERROR("invalid option for '%s' coinid\n", coin_id);
+			return;
+		}
+	} else {
+		CM_ERROR("tokenization malfunction\n");
+		return;
+	}
+	free_uri_base(tokens);
+
+	if (t == NULL) {
 		write(sockfd, "{\"error\": \"error occured\"}\n", strlen("{\"error\": \"error occured\"}\n"));
 		return;
 	}
