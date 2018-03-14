@@ -317,11 +317,13 @@ void send_json_response(int sockfd, struct myhttp_header *header, sqlite3 *db)
 		write(sockfd, "{\"error\": \"error occured\"}\n", strlen("{\"error\": \"error occured\"}\n"));
 		return;
 	}
+
+	int i = 1;
 	while (t != NULL) {
 		if (full_rank > 0)
-			sprintf(tempstr, "#%d:%s\n", t->col1_rank, t->coin_id);
+			sprintf(tempstr, "#%d-%s\n", t->col1_rank, t->coin_id);
 		else
-			sprintf(tempstr, "#%s: %d (%d)\n", t->coin_id, t->col1_rank, t->col2_rank);
+			sprintf(tempstr, "#%d-%s: %d (%d)\n", i++, t->coin_id, t->col1_rank, t->col2_rank);
 		write(sockfd, tempstr, strlen(tempstr));
 		t = t->next;
 	}
