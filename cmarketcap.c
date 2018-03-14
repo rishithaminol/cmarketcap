@@ -24,7 +24,7 @@ char *col_names[] = {
 	"hr_2", "hr_3", "hr_4", "hr_5", "hr_6", "hr_7", "hr_8", "hr_9",
 	"hr_10", "hr_11", "hr_12", "hr_13", "hr_14", "hr_15", "hr_16",
 	"hr_17", "hr_18", "hr_19", "hr_20", "hr_21", "hr_22", "hr_23",
-	"hr_24"
+	"hr_24", "day_1", "day_2", "day_3", "day_4", "day_5", "day_6", "day_7"
 };
 
 char *prog_name = NULL; /**< Program name */
@@ -33,62 +33,62 @@ char *prog_name = NULL; /**< Program name */
 void *__cb_update_database(void *db_)
 {
 	struct coin_entry_base *coin_base;
-	int col_rounds = 0; /**! holds the number of columns currently updated */
-	int col_one_hour = 0;
+
+	/* counter variables */
+	int min_col = 0; /**! minutes column counter */
+	int min_hour_trig = 0; /* minutes and hour trigger */
+	int hour_col = 0;
 	time_t time_diff;
 
 	sqlite3 *db = (sqlite3 *)db_;
 
 	pthread_detach(pthread_self());
 
-	do {
+	while (1) {
 		DEBUG_MSG("Starting to count..\n");
 		time_diff = time(NULL); /* === clock starts === */
 
 		LOCK_SHIFT_COLUMN_LOCKER;
-		if (col_rounds == 12) { /* executes after filling 12 columns */
+		if (min_hour_trig == 12) { /* executes after filling 12 columns. */
 			int j;
-			for (j = col_rounds + col_one_hour; j > 11; j--)
+			for (j = min_hour_trig + hour_col; j > 11; j--)
 				shift_columns(db, col_names[j], col_names[j - 1]);
 
-			col_rounds = 0; /* reset 5min columns. restart from first column */
-			col_one_hour++; /**! filled an 1 hour column */
+			hour_col++; /**! filled an 1 hour column */
 
-			if (col_one_hour == 24) /* 36th column filled */
-				col_one_hour--;
+			if (hour_col == 24) /* 36th column filled */
+				hour_col--;
 		}
 
-		if (col_rounds > 0) { /* Executes from the second step of the loop */
+		if (min_hour_trig > 0) { /* Executes from the second step of the loop */
 			int j;
-			for (j = col_rounds; j > 0; j--) {
-				/* at the time of shifting, time_stamp data should be
-				 * shifted
-				 */
+			for (j = min_col; j > 0; j--)
 				shift_columns(db, col_names[j], col_names[j - 1]);
-			}
+
+			if (min_hour_trig == 12)
+				min_hour_trig = 0;  /* reset 5min columns. restart from first column */
 		}
+
+		if (min_col > 10)
+			min_col = 10;
 
 		coin_base = new_coin_entry_base();
-		if (coin_base->entry_count > number_of_coins) /* number of coins currently fetched has a mismatch */
-		{
-			number_of_coins = coin_base->entry_count;
-			init_coin_history_table(db, coin_base);
-			update_number_of_coins(db, number_of_coins);
-		}
 		fill_column(db, coin_base);
-		col_rounds++; /* already filled a column */
-		DEBUG_MSG("col_rounds = %d, col_one_hour = %d\n", col_rounds, col_one_hour);
+		min_col++; /* already filled a column */
+		min_hour_trig++;
+		DEBUG_MSG("min_col = %d, hour_col = %d, min_hour_trig = %d\n", min_col, hour_col, min_hour_trig);
 		free_entry_base(coin_base);
-		
+
 		UNLOCK_SHIFT_COLUMN_LOCKER;
 
 		time_diff = time(NULL) - time_diff; /* === clock ends === */
+
 		DEBUG_MSG("%d seconds spent, waiting %d seconds\n", time_diff, (300 - time_diff));
 		if ((300 - time_diff) < 0)
 			CM_ERROR("database update took too much time..\n");
 		else
 			wait_countdown_timer("waiting -- ", 300 - time_diff);
-	} while (1);
+	}
 
 	pthread_exit(NULL);
 }
