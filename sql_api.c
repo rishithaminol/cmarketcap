@@ -303,7 +303,7 @@ void fill_column(sqlite3 *db, struct coin_entry_base *coin_base)/*,
 
 	/* before filling set all values in min_0 column to '-1' */
 	sql = sqlite3_mprintf(
-		"UPDATE coin_history SET %s = %d",	col, -1);
+		"UPDATE coin_history SET %s = -1",	col);
 
 	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK)
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
@@ -428,7 +428,8 @@ void shift_columns(sqlite3 *db, const char *col1, const char *col2)
 		exit(EXIT_FAILURE);
 	}
 
-	sleep(3);
+	sleep(2);
+	sqlite3_db_cacheflush(db);
 
 	UNLOCK_DB_ACCESS;
 
