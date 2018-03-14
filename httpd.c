@@ -385,7 +385,6 @@ int write_to_client(int sockfd)
 /* @brief needs openned database */
 int __cb_main_thread(sqlite3 *db)
 {
-	int httpd_sockfd;
 	int httpd_port;
 	int sockfd;
 
@@ -401,8 +400,8 @@ int __cb_main_thread(sqlite3 *db)
 	httpd_port = 1040;
 
 	/* init server socket (ipv4, tcp) */
-	httpd_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (httpd_sockfd < 0) {
+	global_data_handle.httpd_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (global_data_handle.httpd_sockfd < 0) {
 		CM_ERROR("httpd socket failed to create\n");
 		exit(1);
 	}
@@ -412,24 +411,24 @@ int __cb_main_thread(sqlite3 *db)
 	httpd_sockaddr.sin_port        = htons(httpd_port);
 	httpd_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	if (bind(httpd_sockfd, (struct sockaddr *)&httpd_sockaddr,
+	if (bind(global_data_handle.httpd_sockfd, (struct sockaddr *)&httpd_sockaddr,
 		sizeof(httpd_sockaddr)) == -1) {
-		close(httpd_sockfd);
+		close(global_data_handle.httpd_sockfd);
 		CM_ERROR("bind failed\n");
 		exit(1);
 	}
 
-	if (listen(httpd_sockfd, CLIENT_MAX) == -1) {
-		close(httpd_sockfd);
+	if (listen(global_data_handle.httpd_sockfd, CLIENT_MAX) == -1) {
+		close(global_data_handle.httpd_sockfd);
 		CM_ERROR("listen failed\n");
 		exit(1);
 	}
 
-	/* at this stage 'httpd_sockfd', 'httpd_sockaddr', 'httpd_port', 'clilen'
+	/* at this stage 'global_data_handle.httpd_sockfd', 'httpd_sockaddr', 'httpd_port', 'clilen'
 	 * settled up */
 	while (1) {
 		struct __cb_args *cb_arg = NULL;
-		sockfd = accept(httpd_sockfd, (struct sockaddr *)&client_sockaddr, &clilen);
+		sockfd = accept(global_data_handle.httpd_sockfd, (struct sockaddr *)&client_sockaddr, &clilen);
 		if (sockfd == -1) {
 			CM_ERROR("Connection accept error\n");
 			continue;
@@ -450,7 +449,7 @@ int __cb_main_thread(sqlite3 *db)
 		}
 	}
 
-	close(httpd_sockfd);
+	close(global_data_handle.httpd_sockfd);
 
 	//pthread_exit(NULL);
 	return 0;

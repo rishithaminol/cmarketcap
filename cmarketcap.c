@@ -15,7 +15,7 @@ pthread_mutex_t shift_column_locker = PTHREAD_MUTEX_INITIALIZER;
 #define LOCK_SHIFT_COLUMN_LOCKER pthread_mutex_lock(&shift_column_locker)
 #define UNLOCK_SHIFT_COLUMN_LOCKER pthread_mutex_unlock(&shift_column_locker)
 
-static size_t number_of_coins = 0;
+struct global_data_handle global_data_handle;
 
 /* @brief coin_history column map */
 char *col_names[] = {
@@ -102,6 +102,7 @@ int main(int argc, char *argv[])
 
 	pthread_mutex_init(&sql_db_access, NULL);
 	pthread_mutex_init(&shift_column_locker, NULL);
+	global_data_handle.httpd_sockfd = 0;
 
 	prog_name = *argv;
 

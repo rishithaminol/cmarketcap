@@ -4,6 +4,7 @@
 #include <unistd.h> // alarm()
 
 #include "signal_handler.h"
+#include "cmarketcap.h"
 
 void handle_signal(int signal)
 {
@@ -20,6 +21,7 @@ void handle_signal(int signal)
 			break;
 		case SIGINT:
 			printf("Caught SIGINT, exiting now\n");
+			close(global_data_handle.httpd_sockfd);
 			exit(0);
 		default:
 			fprintf(stderr, "Caught wrong signal: %d\n", signal);
