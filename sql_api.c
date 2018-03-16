@@ -118,8 +118,8 @@ struct coin_status_base *fetch_duration(sqlite3 *db, const char *col1,
 
 	sql = sqlite3_mprintf("SELECT %s, %s, coin_key "
 					"FROM coin_history "
-					"WHERE %s < %s "
-					"ORDER BY %s;", col1, col2, col1, col2, col1);
+					"WHERE %s < %s AND %s > 0 "
+					"ORDER BY %s;", col1, col2, col1, col2, col1, col1);
 
 	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK)
 		CM_ERROR("%s\n", sqlite3_errmsg(db));
@@ -204,6 +204,55 @@ void fetch_range_level1(const char *coin_id, sqlite3 *db, int sockfd)
 			   sqlite3_column_int(stmt_1, 7),
 			   sqlite3_column_int(stmt_1, 8),
 			   sqlite3_column_int(stmt_1, 9));
+		write(sockfd, tempstr, strlen(tempstr));
+	}
+
+	UNLOCK_DB_ACCESS;
+
+	sqlite3_finalize(stmt_1);
+	sqlite3_free(sql);
+}
+
+/* min_0, hr_24, day_2, day_7 */
+void fetch_range_level2(const char *coin_id, sqlite3 *db, int sockfd)
+{
+	char *sql;
+	sqlite3_stmt *stmt_1;
+	int rc;
+	char tempstr[255];
+
+	LOCK_DB_ACCESS;
+
+	sql = sqlite3_mprintf("SELECT min_0, hr_24, day_1, day_2, day_3, day_4, day_5, day_6, day_7 "
+						  "FROM coin_history "
+						  "WHERE coin_key = '%s';", coin_id);
+
+	if (sqlite3_prepare_v2(db, sql, -1, &stmt_1, 0) != SQLITE_OK)
+		CM_ERROR("%s\n", sqlite3_errmsg(db));
+
+	rc = sqlite3_step(stmt_1);
+	if(rc == SQLITE_ROW) { /* new row of data ready */
+		sprintf(tempstr, "{ "
+			   "\t\"min_0\": %d, "
+			   "\t\"hr_24\": %d, "
+			   "\t\"day_1\": %d, "
+			   "\t\"day_2\": %d, "
+			   "\t\"day_3\": %d, "
+			   "\t\"day_4\": %d, "
+			   "\t\"day_5\": %d, "
+			   "\t\"day_6\": %d, "
+			   "\t\"day_7\": %d "
+			   "}",
+			   sqlite3_column_int(stmt_1, 0),
+			   sqlite3_column_int(stmt_1, 1),
+			   sqlite3_column_int(stmt_1, 2),
+			   sqlite3_column_int(stmt_1, 3),
+			   sqlite3_column_int(stmt_1, 4),
+			   sqlite3_column_int(stmt_1, 5),
+			   sqlite3_column_int(stmt_1, 6),
+			   sqlite3_column_int(stmt_1, 7),
+			   sqlite3_column_int(stmt_1, 8)
+			   );
 		write(sockfd, tempstr, strlen(tempstr));
 	}
 

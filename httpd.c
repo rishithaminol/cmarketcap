@@ -302,6 +302,13 @@ void send_json_response(int sockfd, struct myhttp_header *header, sqlite3 *db)
 				free_uri_base(tokens);
 
 				return;
+			} else if (strcmp(range, "2") == 0) {
+				LOCK_SHIFT_COLUMN_LOCKER;
+				fetch_range_level2(coin_id, db, sockfd);
+				UNLOCK_SHIFT_COLUMN_LOCKER;
+				free_uri_base(tokens);
+
+				return;
 			}
 		} else {
 			CM_ERROR("invalid option for '%s' coinid\n", coin_id);

@@ -24,7 +24,7 @@ char *col_names[] = {
 	"hr_2", "hr_3", "hr_4", "hr_5", "hr_6", "hr_7", "hr_8", "hr_9",
 	"hr_10", "hr_11", "hr_12", "hr_13", "hr_14", "hr_15", "hr_16",
 	"hr_17", "hr_18", "hr_19", "hr_20", "hr_21", "hr_22", "hr_23",
-	"hr_24", "day_1", "day_2", "day_3", "day_4", "day_5", "day_6", "day_7"
+	"hr_24", "day_1", "day_2", "day_3", "day_4", "day_5", "day_6", "day_7" //43rd column
 };
 
 char *prog_name = NULL; /**< Program name */
@@ -49,15 +49,22 @@ void *__cb_update_database(void *db_)
 		time_diff = time(NULL); /* === clock starts === */
 
 		LOCK_SHIFT_COLUMN_LOCKER;
+
+		/* detects 24 hour completed and shifts hour table */
+		if (hour_col == 24) {/* 36th column filled */
+			int j;
+			for (j = 42; j > 35; j--)
+				shift_columns(db, col_names[j], col_names[j - 1]);
+
+			hour_col--;
+		}
+
 		if (min_hour_trig == 12) { /* executes after filling 12 columns. */
 			int j;
 			for (j = min_hour_trig + hour_col; j > 11; j--)
 				shift_columns(db, col_names[j], col_names[j - 1]);
 
 			hour_col++; /**! filled an 1 hour column */
-
-			if (hour_col == 24) /* 36th column filled */
-				hour_col--;
 		}
 
 		if (min_hour_trig > 0) { /* Executes from the second step of the loop */
