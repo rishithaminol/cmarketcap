@@ -100,7 +100,7 @@ void *__cb_update_database(void *db_)
 	pthread_exit(NULL);
 }
 
-#ifndef CM_TESTING_
+#ifndef CM_TESTING_ /* main() function should be disabled while unit tetsting */
 
 int main(int argc, char *argv[])
 {
