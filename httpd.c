@@ -11,7 +11,7 @@
 #include <pthread.h>
 
 #include "cm_debug.h"
-#include "sql_api.h"
+#include "mysql_api.h"
 #include "httpd.h"
 #include "cmarketcap.h"
 
@@ -23,11 +23,11 @@
 #define LOCK_SHIFT_COLUMN_LOCKER pthread_mutex_lock(&shift_column_locker)
 #define UNLOCK_SHIFT_COLUMN_LOCKER pthread_mutex_unlock(&shift_column_locker)
 
-void error_handle(char *err)
-{
-	perror(err);
-	exit(EXIT_FAILURE);
-}
+static void parse_http_header(char *buff, struct myhttp_header *header);
+static void *__cb_read_from_client(void *cb_arg);
+static int check_http_header(struct myhttp_header *header);
+static void send_header(int sockfd, char *code, char *type);
+static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *db);
 
 /** @brief Parse http headers into a data structure.
  *
@@ -35,7 +35,7 @@ void error_handle(char *err)
  * thread safe
  *
  */
-void parse_http_header(char *buff, struct myhttp_header *header)
+static void parse_http_header(char *buff, struct myhttp_header *header)
 {
 	char *token;
 	char *line = NULL;
@@ -53,7 +53,7 @@ void parse_http_header(char *buff, struct myhttp_header *header)
 	strcpy(header->protocol, token);
 }
 
-int check_http_header(struct myhttp_header *header)
+static int check_http_header(struct myhttp_header *header)
 {
 	return 0;
 }
@@ -62,7 +62,7 @@ int check_http_header(struct myhttp_header *header)
  *
  * called by send_json_response
  */
-void send_header(int sockfd, char *code, char *type)
+static void send_header(int sockfd, char *code, char *type)
 {
 	char buf[100];
 
@@ -253,7 +253,7 @@ void print_uri_base(struct uri_base *ub)
  *
  * We have to write a functio to tokenize url data.
  */
-void send_json_response(int sockfd, struct myhttp_header *header, sqlite3 *db)
+static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *db)
 {
 	char code[4];
 	struct coin_status_base *sb;
@@ -340,11 +340,11 @@ void send_json_response(int sockfd, struct myhttp_header *header, sqlite3 *db)
 
 struct __cb_args {
 	int socket;
-	sqlite3 *db;
+	MYSQL *db;
 };
 
 /* @brief Callback function for 'pthread_create' */
-void *__cb_read_from_client(void *cb_arg)
+static void *__cb_read_from_client(void *cb_arg)
 {
 	char buffer[RD_BUFF_MAX];
 	int nbytes;
@@ -353,7 +353,7 @@ void *__cb_read_from_client(void *cb_arg)
 	struct __cb_args *_cb_arg = (struct __cb_args *)cb_arg;
 
 	sockfd = _cb_arg->socket;
-	sqlite3 *db = _cb_arg->db;
+	MYSQL *db = _cb_arg->db;
 
 	pthread_detach(pthread_self());
 
@@ -386,13 +386,8 @@ void *__cb_read_from_client(void *cb_arg)
 	pthread_exit(NULL);
 }
 
-int write_to_client(int sockfd)
-{
-	return 0;
-}
-
 /* @brief needs openned database */
-int __cb_main_thread(sqlite3 *db)
+int __cb_main_thread(MYSQL *db)
 {
 	int httpd_port;
 	int sockfd;

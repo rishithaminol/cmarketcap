@@ -3,3 +3,4 @@ cmarketcap
 *.db-journal
 
 test/url_token_test
+test/mysql_api_test
