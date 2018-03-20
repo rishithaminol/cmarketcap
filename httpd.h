@@ -1,7 +1,7 @@
 #ifndef HTTPD_H_
 #define HTTPD_H_
 
-#include <sqlite3.h>
+#include "mysql_api.h"
 
 struct myhttp_header {
 	char method[5];
@@ -30,16 +30,15 @@ struct uri_base {
 };
 /*! @} */ /* uri_tokenization */
 
-extern int __cb_main_thread(sqlite3 *db);
-extern void error_handle(char *err);
-extern void *__cb_read_from_client(void *sock);
-extern int write_to_client(int sockfd);
-extern void parse_http_header(char *buff, struct myhttp_header *header);
-extern int check_http_header(struct myhttp_header *header);
-extern void send_header(int, char *, char *);
-extern void send_json_response(int sockfd, struct myhttp_header *header, sqlite3 *db);
+extern int __cb_main_thread(MYSQL *db);
+
+/*! \addtogroup url_tokenization
+ *  url tokenization mechanism
+ *  @{
+ */
 extern struct uri_base *tokenize_uri(const char *uri);
 extern void print_uri_base(struct uri_base *ub);
 extern void free_uri_base(struct uri_base *ub);
+/*! @} */ /* uri_tokenization */
 
 #endif

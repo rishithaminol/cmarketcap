@@ -1,3 +1,9 @@
+/** @file json_parser.h
+ *
+ * @brief Fetch JSON data from 'coinmarketcap.com' and output them
+ *		  as linked list data structure.
+ */
+
 #ifndef JSON_PARSER_H
 #define JSON_PARSER_H
 

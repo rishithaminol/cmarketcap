@@ -6,7 +6,7 @@
 
 #include "cmarketcap.h"
 #include "json_parser.h"
-#include "sql_api.h"
+#include "mysql_api.h"
 #include "cm_debug.h"
 #include "httpd.h"
 #include "timer.h"
@@ -40,7 +40,7 @@ void *__cb_update_database(void *db_)
 	int hour_col = 0;
 	time_t time_diff;
 
-	sqlite3 *db = (sqlite3 *)db_;
+	MYSQL *db = (MYSQL *)db_;
 
 	pthread_detach(pthread_self());
 
@@ -80,7 +80,7 @@ void *__cb_update_database(void *db_)
 			min_col = 10;
 
 		coin_base = new_coin_entry_base();
-		fill_column(db, coin_base);
+		cm_update_table(db, coin_base);
 		min_col++; /* already filled a column */
 		min_hour_trig++;
 		DEBUG_MSG("min_col = %d, hour_col = %d, min_hour_trig = %d\n", min_col, hour_col, min_hour_trig);
@@ -104,10 +104,10 @@ void *__cb_update_database(void *db_)
 
 int main(int argc, char *argv[])
 {
-	sqlite3 *db;
+	MYSQL *db;
 	pthread_t update_database_id;
 
-	pthread_mutex_init(&sql_db_access, NULL);
+	pthread_mutex_init(&mysql_db_access, NULL);
 	pthread_mutex_init(&shift_column_locker, NULL);
 	global_data_handle.httpd_sockfd = 0;
 
@@ -118,7 +118,11 @@ int main(int argc, char *argv[])
 		CM_ERROR("Database error\n");
 		exit(1);
 	}
-
+	/*struct coin_entry_base *x = new_coin_entry_base();
+      init_coin_history_table(db, x);
+      free_entry_base(x);
+      exit(0);
+*/
 	pthread_create(&update_database_id, NULL, __cb_update_database, (void *)db);
 	__cb_main_thread(db);
 
@@ -127,6 +131,5 @@ int main(int argc, char *argv[])
 
 	return 0;
 } /* main */
-
 
 #endif

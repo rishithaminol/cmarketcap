@@ -105,7 +105,7 @@ void print_entries(struct coin_entry_base *eb)
 	}
 }
 
-/* @brief freeup entire 'entry_base' structure */
+/* @brief freeup entire 'coin_entry_base' C data structure */
 void free_entry_base(struct coin_entry_base *eb)
 {
 	struct coin_entry *entry, *entry2;
@@ -126,8 +126,13 @@ void free_entry_base(struct coin_entry_base *eb)
 	}
 }
 
-/* @brief Main json_parser function. This makes C data structures from
- *			JSON data
+/**
+ * @brief Downloads cryptocurrency data from 'coinmarketcap.com'
+ *		  and return them as a C data structure.
+ *
+ * In this program we call this structure as 'coin_entry_base'
+ *
+ * @return 'coin_entry_base'
  */
 struct coin_entry_base *new_coin_entry_base()
 {
@@ -206,7 +211,7 @@ static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream)
 /* @brief This will return a large text output which is needed
  *			by 'json_loads()'
  *
- *	@param[in] url API url to be read.
+ *	@param[in] url API url to be read from 'coinmarketcap.com'.
  */
 static char *request_json_data(const char *url)
 {
