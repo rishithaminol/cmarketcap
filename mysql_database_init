@@ -1,0 +1,4 @@
+#!/bin/bash
+
+mysql -u root -p cmarketcap_db < cmarketcap_db.sql
+
