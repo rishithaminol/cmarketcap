@@ -2,6 +2,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "httpd.h"
+
 /* @brief Count down timer display
  *
  * @param[in] sec number of seconds to wait
@@ -14,7 +16,8 @@ void wait_countdown_timer(const char *wait_str, int sec)
 	i = sec;
 
 	do {
-		printf("%s%3d(s)", wait_str, i);
+		printf("%s%3d(s) number_of_clients = %lu", wait_str, i,
+			num_of_clients());
 		fflush(stdout);
 		i--;
 		sleep(1);

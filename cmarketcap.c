@@ -12,6 +12,7 @@
 #include "timer.h"
 
 pthread_mutex_t shift_column_locker = PTHREAD_MUTEX_INITIALIZER;
+
 struct global_data_handle global_data_handle;
 
 /* @brief coin_history column map */
@@ -106,6 +107,8 @@ int main(int argc, char *argv[])
 
 	pthread_mutex_init(&mysql_db_access, NULL);
 	pthread_mutex_init(&shift_column_locker, NULL);
+	init_httpd_mutexes();
+
 	global_data_handle.httpd_sockfd = 0;
 
 	prog_name = *argv;

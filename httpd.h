@@ -41,4 +41,7 @@ extern void print_uri_base(struct uri_base *ub);
 extern void free_uri_base(struct uri_base *ub);
 /*! @} */ /* uri_tokenization */
 
+extern size_t num_of_clients();
+extern void init_httpd_mutexes();
+
 #endif

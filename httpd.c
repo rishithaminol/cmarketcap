@@ -19,11 +19,20 @@
 #define CLIENT_MAX  10
 #define MAX_URI_SIZE 2048
 
+pthread_mutex_t number_of_clients_var_locker = PTHREAD_MUTEX_INITIALIZER;
+size_t number_of_clients = 0;
+#define LOCK_NUM_OF_CLIENTS_LOCKER pthread_mutex_lock( \
+	&number_of_clients_var_locker)
+#define UNLOCK_NUM_OF_CLIENTS_LOCKER pthread_mutex_unlock( \
+	&number_of_clients_var_locker)
+
 static void parse_http_header(char *buff, struct myhttp_header *header);
 static void *__cb_read_from_client(void *cb_arg);
 static int check_http_header(struct myhttp_header *header);
 static void send_header(int sockfd, char *code, char *type);
 static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *db);
+static void inc_number_of_clients(); /*! Increment number of clients */
+static void dec_number_of_clients(); /*! Decrement number of clients */
 
 /** @brief Parse http headers into a data structure.
  *
@@ -354,6 +363,7 @@ static void *__cb_read_from_client(void *cb_arg)
 	pthread_detach(pthread_self());
 
 	DEBUG_MSG("waiting for client to write...\n");
+	inc_number_of_clients();
 	while ((nbytes = read(sockfd, buffer, RD_BUFF_MAX))) {
 		DEBUG_MSG("client wrote %d bytes\n", nbytes);
 		if (nbytes < 0) {
@@ -375,11 +385,39 @@ static void *__cb_read_from_client(void *cb_arg)
 		}
 	}
 
+	dec_number_of_clients();
 	close(sockfd);
 	free(_cb_arg);
 	DEBUG_MSG("Connection closed\n");
 
 	pthread_exit(NULL);
+}
+
+/* @brief returns number of clients at the moment */
+size_t num_of_clients()
+{
+	size_t num;
+	LOCK_NUM_OF_CLIENTS_LOCKER;
+	num = number_of_clients;
+	UNLOCK_NUM_OF_CLIENTS_LOCKER;
+
+	return num;
+}
+
+/* @brief Increas number of clients at the moment */
+static void inc_number_of_clients()
+{
+	LOCK_NUM_OF_CLIENTS_LOCKER;
+	number_of_clients++;
+	UNLOCK_NUM_OF_CLIENTS_LOCKER;
+}
+
+/* @brief Decrease number of clients at the moment */
+static void dec_number_of_clients()
+{
+	LOCK_NUM_OF_CLIENTS_LOCKER;
+	number_of_clients--;
+	UNLOCK_NUM_OF_CLIENTS_LOCKER;
 }
 
 /* @brief needs openned database */
@@ -453,4 +491,10 @@ int __cb_main_thread(MYSQL *db)
 
 	//pthread_exit(NULL);
 	return 0;
-} /* main */
+} /* __cb_main_thread */
+
+/* @brief Initialize mutex functionalities of 'httpd.c' section */
+void init_httpd_mutexes()
+{
+	pthread_mutex_init(&number_of_clients_var_locker, NULL);
+}
