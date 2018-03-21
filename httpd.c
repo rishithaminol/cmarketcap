@@ -19,10 +19,6 @@
 #define CLIENT_MAX  10
 #define MAX_URI_SIZE 2048
 
-/**! this locks others while shift_columns in action. */
-#define LOCK_SHIFT_COLUMN_LOCKER pthread_mutex_lock(&shift_column_locker)
-#define UNLOCK_SHIFT_COLUMN_LOCKER pthread_mutex_unlock(&shift_column_locker)
-
 static void parse_http_header(char *buff, struct myhttp_header *header);
 static void *__cb_read_from_client(void *cb_arg);
 static int check_http_header(struct myhttp_header *header);

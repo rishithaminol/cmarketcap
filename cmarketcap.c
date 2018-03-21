@@ -12,9 +12,6 @@
 #include "timer.h"
 
 pthread_mutex_t shift_column_locker = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK_SHIFT_COLUMN_LOCKER pthread_mutex_lock(&shift_column_locker)
-#define UNLOCK_SHIFT_COLUMN_LOCKER pthread_mutex_unlock(&shift_column_locker)
-
 struct global_data_handle global_data_handle;
 
 /* @brief coin_history column map */
