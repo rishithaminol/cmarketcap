@@ -10,10 +10,16 @@
 #include "json_parser.h"
 #include "cm_debug.h"
 
-/* @brief lock db access */
+
+/* @brief lock db access. should be initialized by 'cmarketcap.c' */
 pthread_mutex_t mysql_db_access = PTHREAD_MUTEX_INITIALIZER;
 #define LOCK_DB_ACCESS   pthread_mutex_lock(&mysql_db_access)
 #define UNLOCK_DB_ACCESS pthread_mutex_unlock(&mysql_db_access)
+
+static struct coin_status *mk_coin_status(const char *coin_id, const char *col1,
+  int col1_rank, const char *col2, int col2_rank);
+static struct coin_status_base *init_coin_status_base();
+static void append_coin_status(struct coin_status_base *sb, struct coin_status *st);
 
 void free_coin_status_base(struct coin_status_base *sb)
 {
@@ -52,7 +58,7 @@ void print_coin_status_base(struct coin_status_base *sb)
 	}
 }
 
-struct coin_status *mk_coin_status(const char *coin_id, const char *col1,
+static struct coin_status *mk_coin_status(const char *coin_id, const char *col1,
   int col1_rank, const char *col2, int col2_rank)
 {
 	struct coin_status *coin_stat;
@@ -70,7 +76,7 @@ struct coin_status *mk_coin_status(const char *coin_id, const char *col1,
 	return coin_stat;
 }
 
-struct coin_status_base *init_coin_status_base()
+static struct coin_status_base *init_coin_status_base()
 {
 	struct coin_status_base *coin_stat_base;
 
@@ -84,7 +90,7 @@ struct coin_status_base *init_coin_status_base()
 	return coin_stat_base;
 }
 
-void append_coin_status(struct coin_status_base *sb, struct coin_status *st)
+static void append_coin_status(struct coin_status_base *sb, struct coin_status *st)
 {
 	if (sb->first == NULL) {/* first and last NULL */
 		sb->first = st;
@@ -123,7 +129,7 @@ void close_main_db(MYSQL *db)
 		mysql_close(db);
 }
 
-/** @brief Initialize 'coin_history' table's 'coin_id' field
+/** @brief Initialize 'coin_history' table's 'coin_key' field
  *
  * @todo This function should have a way of updating newly arrived coins.
  *       And there should be a way of informing dropped coins
@@ -151,7 +157,7 @@ void init_coin_history_table(MYSQL *db, struct coin_entry_base *coin_base)
 	UNLOCK_DB_ACCESS;
 }
 
-/** @brief Fill first column of the table.
+/** @brief Fill first quarter column of the table.
  *
  * Updates the 'time_stamp' table. parameter col always
  * takes a name from an array from the caller. eg:- min_0
