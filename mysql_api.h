@@ -9,6 +9,7 @@
 
 struct coin_status {
 	char *coin_id;
+	char *coin_symbol;
 	char *col1;
 	int col1_rank;
 	char *col2;

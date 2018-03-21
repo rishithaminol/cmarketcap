@@ -33,6 +33,7 @@ USE cmarketcap_db;
 CREATE TABLE `coin_history` (
   `index_` int(11) NOT NULL,
   `coin_key` varchar(60) NOT NULL,
+  `coin_symbol` varchar(20) DEFAULT NULL,
   `min_0` int(11) NOT NULL DEFAULT '0',
   `min_5` int(11) NOT NULL DEFAULT '0',
   `min_10` int(11) NOT NULL DEFAULT '0',

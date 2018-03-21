@@ -333,9 +333,9 @@ static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *
 	int i = 1;
 	while (t != NULL) {
 		if (full_rank > 0)
-			sprintf(tempstr, "#%d-%s\n", t->col1_rank, t->coin_id);
+			sprintf(tempstr, "#%d-(%s)%s\n", t->col1_rank, t->coin_symbol, t->coin_id);
 		else
-			sprintf(tempstr, "#%d-%s: %d (%d)\n", i++, t->coin_id, t->col1_rank, t->col2_rank);
+			sprintf(tempstr, "#%d-(%s)%s: %d (%d)\n", i++, t->coin_symbol, t->coin_id, t->col1_rank, t->col2_rank);
 		write(sockfd, tempstr, strlen(tempstr));
 		t = t->next;
 	}

@@ -16,8 +16,8 @@ pthread_mutex_t mysql_db_access = PTHREAD_MUTEX_INITIALIZER;
 #define LOCK_DB_ACCESS   pthread_mutex_lock(&mysql_db_access)
 #define UNLOCK_DB_ACCESS pthread_mutex_unlock(&mysql_db_access)
 
-static struct coin_status *mk_coin_status(const char *coin_id, const char *col1,
-  int col1_rank, const char *col2, int col2_rank);
+static struct coin_status *mk_coin_status(const char *coin_id, const char *coin_symbol,
+	const char *col1, int col1_rank, const char *col2, int col2_rank);
 static struct coin_status_base *init_coin_status_base();
 static void append_coin_status(struct coin_status_base *sb, struct coin_status *st);
 
@@ -30,6 +30,7 @@ void free_coin_status_base(struct coin_status_base *sb)
 
 	while (stat1 != NULL) {
 		free(stat1->coin_id);
+		free(stat1->coin_symbol);
 		free(stat1->col1);
 		free(stat1->col2);
 
@@ -58,14 +59,15 @@ void print_coin_status_base(struct coin_status_base *sb)
 	}
 }
 
-static struct coin_status *mk_coin_status(const char *coin_id, const char *col1,
-  int col1_rank, const char *col2, int col2_rank)
+static struct coin_status *mk_coin_status(const char *coin_id, const char *coin_symbol,
+	const char *col1, int col1_rank, const char *col2, int col2_rank)
 {
 	struct coin_status *coin_stat;
 
 	coin_stat = (struct coin_status *)malloc(sizeof(struct coin_status));
 
 	coin_stat->coin_id   = (coin_id != NULL) ? strdup(coin_id) : NULL;
+	coin_stat->coin_symbol = (coin_symbol != NULL) ? strdup(coin_symbol) : NULL;
 	coin_stat->col1      = (col1 != NULL) ? strdup(col1) : NULL;
 	coin_stat->col1_rank = col1_rank;
 	coin_stat->col2      = (col2 != NULL) ? strdup(col2) : NULL;
@@ -143,7 +145,8 @@ void init_coin_history_table(MYSQL *db, struct coin_entry_base *coin_base)
 
 	t = coin_base->first;
 	while (t != NULL) {
-		sprintf(sql, "INSERT INTO `coin_history` (coin_key) VALUES ('%s')", t->id);
+		sprintf(sql, "INSERT INTO `coin_history` (coin_key, coin_symbol) "
+			"VALUES ('%s', '%s')", t->id, t->symbol);
 
 		if (mysql_query(db, sql) != 0) {
 			CM_ERROR("%s\n", mysql_error(db));
@@ -194,8 +197,10 @@ void cm_update_table(MYSQL *db, struct coin_entry_base *coin_base)
 		sprintf(sql, "SELECT `min_0` FROM `coin_history` WHERE coin_key='%s';", t->id);
 
 		if (mysql_query(db, sql) != 0) { /* New coin arrived */
-			sprintf(sql2,
-			  "INSERT INTO `coin_history` (coin_key) VALUES ('%s');", t->id);
+			sprintf(sql2, "INSERT INTO `coin_history` (coin_key, coin_symbol) "
+			"VALUES ('%s', '%s')", t->id, t->symbol);
+
+			DEBUG_MSG("New coin arrived\n");
 
 			if (mysql_query(db, sql2) != 0)
 				CM_ERROR("%s\n", mysql_error(db));
@@ -264,6 +269,7 @@ struct coin_status_base *fetch_entire_rank(MYSQL *db)
 	char sql[255];
 	/* @brief return row values */
 	char *ret_coin_key;
+	char *ret_coin_symbol;
 	int ret_col_rank;
 
 	MYSQL_RES *result;
@@ -273,7 +279,7 @@ struct coin_status_base *fetch_entire_rank(MYSQL *db)
 
 	LOCK_DB_ACCESS;
 
-	sprintf(sql, "SELECT coin_key, min_0 "
+	sprintf(sql, "SELECT coin_key, coin_symbol, min_0 "
 	  "FROM coin_history "
 	  "WHERE min_0 > 0 "
 	  "ORDER BY min_0;");
@@ -291,7 +297,7 @@ struct coin_status_base *fetch_entire_rank(MYSQL *db)
 		return NULL;
 	}
 
-	if (mysql_num_fields(result) != 2) { /* this should return 2 columns */
+	if (mysql_num_fields(result) != 3) { /* this should return 3 columns */
 		CM_ERROR("%s\n", mysql_error(db));
 		free_coin_status_base(coin_stat_base);
 		mysql_free_result(result);
@@ -303,9 +309,11 @@ struct coin_status_base *fetch_entire_rank(MYSQL *db)
 		struct coin_status *s;
 
 		ret_coin_key = row[0];       /* char */
-		ret_col_rank = atoi(row[1]); /* int */
+		ret_coin_symbol = row[1];
+		ret_col_rank = atoi(row[2]); /* int */
 
 		s = mk_coin_status((const char *)ret_coin_key,
+			(const char *)ret_coin_symbol,
 		    NULL,
 		    ret_col_rank,
 		    NULL,
@@ -338,6 +346,7 @@ struct coin_status_base *fetch_duration(MYSQL *db, const char *col1,
 	int ret_col1;
 	int ret_col2;
 	char *ret_coin_key;
+	char *ret_coin_symbol;
 
 	MYSQL_RES *result;
 	MYSQL_ROW row;
@@ -346,7 +355,7 @@ struct coin_status_base *fetch_duration(MYSQL *db, const char *col1,
 
 	LOCK_DB_ACCESS;
 
-	sprintf(sql, "SELECT %s, %s, coin_key "
+	sprintf(sql, "SELECT %s, %s, coin_key, coin_symbol "
 	  "FROM coin_history "
 	  "WHERE %s < %s AND %s > 0 "
 	  "ORDER BY %s;", col1, col2, col1, col2, col1, col1);
@@ -364,7 +373,7 @@ struct coin_status_base *fetch_duration(MYSQL *db, const char *col1,
 		return NULL;
 	}
 
-	if (mysql_num_fields(result) != 3) { /* this should return 3 columns */
+	if (mysql_num_fields(result) != 4) { /* this should return 3 columns */
 		CM_ERROR("%s\n", mysql_error(db));
 		free_coin_status_base(coin_stat_base);
 		mysql_free_result(result);
@@ -378,8 +387,10 @@ struct coin_status_base *fetch_duration(MYSQL *db, const char *col1,
 		ret_col1     = atoi(row[0]);
 		ret_col2     = atoi(row[1]);
 		ret_coin_key = row[2];
+		ret_coin_symbol = row[3];
 
 		s = mk_coin_status((const char *)ret_coin_key,
+			(const char *)ret_coin_symbol,
 		    (const char *)col1,
 		    ret_col1,
 		    (const char *)col2,
