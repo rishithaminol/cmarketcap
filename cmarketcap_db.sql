@@ -21,6 +21,8 @@ SET time_zone = "+00:00";
 --
 -- Database: `cmarketcap_db`
 --
+CREATE DATABASE IF NOT EXISTS cmarketcap_db;
+USE cmarketcap_db;
 
 -- --------------------------------------------------------
 
