@@ -437,6 +437,13 @@ void fetch_range_level1(const char *coin_id, MYSQL *db, int sockfd)
 
 	row = mysql_fetch_row(result);
 
+	UNLOCK_DB_ACCESS;
+	
+	if (row == NULL) {
+		CM_ERROR("retriving data\n");
+		return;
+	}
+
 	sprintf(tempstr, "{ "
 	  "\t\"min_0\": %s, "
 	  "\t\"min_5\": %s, "
@@ -460,8 +467,6 @@ void fetch_range_level1(const char *coin_id, MYSQL *db, int sockfd)
 	  row[8],
 	  row[9]);
 	write(sockfd, tempstr, strlen(tempstr));
-
-	UNLOCK_DB_ACCESS;
 
 	mysql_free_result(result);
 } /* fetch_range_level1 */
@@ -495,6 +500,13 @@ void fetch_range_level2(const char *coin_id, MYSQL *db, int sockfd)
 
 	row = mysql_fetch_row(result);
 
+	UNLOCK_DB_ACCESS;
+	
+	if (row == NULL) {
+		CM_ERROR("retriving data\n");
+		return;
+	}
+
 	sprintf(tempstr, "{ "
 	  "\t\"min_0\": %s, "
 	  "\t\"hr_24\": %s, "
@@ -516,8 +528,6 @@ void fetch_range_level2(const char *coin_id, MYSQL *db, int sockfd)
 	  row[7],
 	  row[8]);
 	write(sockfd, tempstr, strlen(tempstr));
-
-	UNLOCK_DB_ACCESS;
 
 	mysql_free_result(result);
 } /* fetch_range_level2 */
