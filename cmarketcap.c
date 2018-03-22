@@ -27,18 +27,32 @@ char *col_names[] = {
 
 char *prog_name = NULL; /**< Program name */
 
-/* @brief callback function  */
-void *__cb_update_database(void *db_)
+struct __cb_args {
+	MYSQL *db;
+	int min_col;
+	int min_hour_trig;
+	int hour_col;
+	time_t time_diff;
+};
+
+/**
+ * @brief callback function
+ *
+ * @param[in] arg This is 'void *' converted '__cb_args' structure
+ */
+void *__cb_update_database(void *arg)
 {
 	struct coin_entry_base *coin_base;
 
 	/* counter variables */
 	int min_col = 0; /**! minutes column counter */
 	int min_hour_trig = 0; /* minutes and hour trigger */
+	int hour_day_trig = 0;
 	int hour_col = 0;
 	time_t time_diff;
 
-	MYSQL *db = (MYSQL *)db_;
+	struct __cb_args *__cb_arg;
+	__cb_arg = (struct __cb_args *)arg;
 
 	pthread_detach(pthread_self());
 
@@ -49,26 +63,30 @@ void *__cb_update_database(void *db_)
 		LOCK_SHIFT_COLUMN_LOCKER;
 
 		/* detects 24 hour completed and shifts hour table */
-		if (hour_col == 24) {/* 36th column filled */
+		if (hour_day_trig == 24) {/* 36th column filled */
 			int j;
 			for (j = 42; j > 35; j--)
-				shift_columns(db, col_names[j], col_names[j - 1]);
+				shift_columns(__cb_arg->db, col_names[j], col_names[j - 1]);
 
-			hour_col--;
+//			hour_col--;
+			hour_day_trig = 0;
 		}
 
 		if (min_hour_trig == 12) { /* executes after filling 12 columns. */
 			int j;
 			for (j = min_hour_trig + hour_col; j > 11; j--)
-				shift_columns(db, col_names[j], col_names[j - 1]);
+				shift_columns(__cb_arg->db, col_names[j], col_names[j - 1]);
 
 			hour_col++; /**! filled an 1 hour column */
+			if (hour_col == 24)
+				hour_col--;
+			hour_day_trig++;
 		}
 
 		if (min_hour_trig > 0) { /* Executes from the second step of the loop */
 			int j;
 			for (j = min_col; j > 0; j--)
-				shift_columns(db, col_names[j], col_names[j - 1]);
+				shift_columns(__cb_arg->db, col_names[j], col_names[j - 1]);
 
 			if (min_hour_trig == 12)
 				min_hour_trig = 0;  /* reset 5min columns. restart from first column */
@@ -78,10 +96,10 @@ void *__cb_update_database(void *db_)
 			min_col = 10;
 
 		coin_base = new_coin_entry_base();
-		cm_update_table(db, coin_base);
+		cm_update_table(__cb_arg->db, coin_base);
 		min_col++; /* already filled a column */
 		min_hour_trig++;
-		DEBUG_MSG("min_col = %d, hour_col = %d, min_hour_trig = %d\n", min_col, hour_col, min_hour_trig);
+		DEBUG_MSG("min_col = %d, hour_col = %d, min_hour_trig = %d, hour_day_trig = %d\n", min_col, hour_col, min_hour_trig, hour_day_trig);
 		free_entry_base(coin_base);
 
 		UNLOCK_SHIFT_COLUMN_LOCKER;
@@ -121,9 +139,13 @@ int main(int argc, char *argv[])
 	/*struct coin_entry_base *x = new_coin_entry_base();
       init_coin_history_table(db, x);
       free_entry_base(x);
-      exit(0);
-*/
-	pthread_create(&update_database_id, NULL, __cb_update_database, (void *)db);
+      close_main_db(db);
+      exit(0);*/
+
+	struct __cb_args __cb_arg;
+	__cb_arg.db = db;
+
+	pthread_create(&update_database_id, NULL, __cb_update_database, (void *)&__cb_arg);
 	__cb_main_thread(db);
 
 	close_main_db(db);
