@@ -469,7 +469,7 @@ int __cb_main_thread(MYSQL *db, int port_num)
 		sockfd = accept(global_data_handle.httpd_sockfd, (struct sockaddr *)&client_sockaddr, &clilen);
 		if (sockfd == -1) {
 			CM_ERROR("Connection accept error\n");
-			continue;
+			break;
 		} else {
 			DEBUG_MSG("Client accepted connection\n");
 			cb_arg = (struct __cb_args *)malloc(sizeof(struct __cb_args));
