@@ -10,6 +10,7 @@
 #include "cm_debug.h"
 #include "httpd.h"
 #include "timer.h"
+#include "signal_handler.h"
 
 pthread_mutex_t shift_column_locker = PTHREAD_MUTEX_INITIALIZER;
 
@@ -126,6 +127,7 @@ int main(int argc, char *argv[])
 	pthread_mutex_init(&mysql_db_access, NULL);
 	pthread_mutex_init(&shift_column_locker, NULL);
 	init_httpd_mutexes();
+	init_sighandlers();
 
 	global_data_handle.httpd_sockfd = 0;
 
