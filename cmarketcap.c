@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
 	__cb_arg.db = db;
 
 	pthread_create(&update_database_id, NULL, __cb_update_database, (void *)&__cb_arg);
-	__cb_main_thread(db);
+	__cb_main_thread(db, atoi(argv[1]));
 
 	close_main_db(db);
 	DEBUG_MSG("main database closed\n");

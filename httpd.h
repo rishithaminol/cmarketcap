@@ -30,7 +30,7 @@ struct uri_base {
 };
 /*! @} */ /* uri_tokenization */
 
-extern int __cb_main_thread(MYSQL *db);
+extern int __cb_main_thread(MYSQL *db, int port_num);
 
 /*! \addtogroup url_tokenization
  *  url tokenization mechanism

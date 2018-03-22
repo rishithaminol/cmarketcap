@@ -421,7 +421,7 @@ static void dec_number_of_clients()
 }
 
 /* @brief needs openned database */
-int __cb_main_thread(MYSQL *db)
+int __cb_main_thread(MYSQL *db, int port_num)
 {
 	int httpd_port;
 	int sockfd;
@@ -435,7 +435,7 @@ int __cb_main_thread(MYSQL *db)
 	//pthread_detach(pthread_self());
 
 	/* port number has to between 1024 and 65536 (not included) */
-	httpd_port = 1040;
+	httpd_port = port_num;
 
 	/* init server socket (ipv4, tcp) */
 	global_data_handle.httpd_sockfd = socket(AF_INET, SOCK_STREAM, 0);
