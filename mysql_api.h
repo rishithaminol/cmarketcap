@@ -33,7 +33,7 @@ extern void init_coin_history_table(MYSQL *db, struct coin_entry_base *coin_base
 extern void free_coin_status_base(struct coin_status_base *sb);
 extern void print_coin_status_base(struct coin_status_base *sb);
 extern void cm_update_table(MYSQL *db, struct coin_entry_base *coin_base);
-extern void shift_columns(MYSQL *db, const char *col1, const char *col2);
+extern int shift_columns(MYSQL *db, const char *col1, const char *col2);
 extern struct coin_status_base *fetch_entire_rank(MYSQL *db);
 extern struct coin_status_base *fetch_duration(MYSQL *db, const char *col1,
 	const char *col2);

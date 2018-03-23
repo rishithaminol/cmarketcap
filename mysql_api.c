@@ -244,32 +244,73 @@ void cm_update_table(MYSQL *db, struct coin_entry_base *coin_base)
 	UNLOCK_DB_ACCESS;
 } /* cm_update_table */
 
-/* @brief Copy one column to another. Copy 'col2' into 'col1' */
-void shift_columns(MYSQL *db, const char *col1, const char *col2)
+/**
+ * @brief Copy one column to another. Copy 'col2' into 'col1'
+ *
+ * @return return positive value on success. negative value on
+ *		   error.
+ */
+int shift_columns(MYSQL *db, const char *col1, const char *col2)
 {
 	char sql[255];
+	char col_name[10];
+	MYSQL_RES *result;
+	MYSQL_ROW row;
 
 	LOCK_DB_ACCESS;
 
 	sprintf(sql, "UPDATE coin_history SET `%s` = `%s`", col1, col2);
 
 	DEBUG_MSG("shifting columns -- %s\n", sql);
-	if (mysql_query(db, sql) != 0)
+	if (mysql_query(db, sql) != 0) {
 		CM_ERROR("%s\n", mysql_error(db));
+		UNLOCK_DB_ACCESS;
+		return -1;
+	}
+
+	sprintf(sql, "SELECT time_stamp "
+		"FROM `time_stamps` "
+		"WHERE column_name = '%s'", col2);
+	if (mysql_query(db, sql) != 0) {
+		CM_ERROR("%s\n", mysql_error(db));
+		UNLOCK_DB_ACCESS;
+		return -1;
+	}
+
+	result = mysql_store_result(db);
+	if (result == NULL) {
+		CM_ERROR("%s\n", mysql_error(db));
+		UNLOCK_DB_ACCESS;
+		return -1;
+	}
+
+	row = mysql_fetch_row(result);
+	if (row == NULL) {
+		CM_ERROR("Invalid timestamp stored inside '%s'\n", col2);
+		UNLOCK_DB_ACCESS;
+		return -1;
+	}
+
+	strcpy(col_name, row[0]);
+	mysql_free_result(result);
 
 	/* Shifting timestamps */
 	sprintf(sql,
 	  "UPDATE `time_stamps` "
-	  "SET time_stamp = (SELECT time_stamp FROM "
-	  "`time_stamps` WHERE column_name = '%s') "
+	  "SET time_stamp = '%s' "
 	  "WHERE column_name = '%s';",
-	  col2, col1);
+	  col_name, col1);
 
 	DEBUG_MSG("shifting time stamps -- %s\n", sql);
-	if (mysql_query(db, sql) != 0)
+	if (mysql_query(db, sql) != 0) {
 		CM_ERROR("%s\n", mysql_error(db));
+		UNLOCK_DB_ACCESS;
+		return -1;
+	}
 
 	UNLOCK_DB_ACCESS;
+
+	return 1;
 }
 
 /**
