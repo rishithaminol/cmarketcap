@@ -176,6 +176,8 @@ void cm_update_table(MYSQL *db, struct coin_entry_base *coin_base)
 	char sql[255], sql2[255];
 	struct coin_entry *t;
 	const char *col = "min_0";
+	MYSQL_RES *result;
+	MYSQL_ROW row;
 
 	t = coin_base->first;
 
@@ -190,13 +192,26 @@ void cm_update_table(MYSQL *db, struct coin_entry_base *coin_base)
 		UNLOCK_DB_ACCESS;
 		return;
 	}
-	mysql_free_result(mysql_store_result(db));
 
 	/* @todo performance optimization needed */
 	while (t != NULL) {
 		sprintf(sql, "SELECT `min_0` FROM `coin_history` WHERE coin_key='%s';", t->id);
 
-		if (mysql_query(db, sql) != 0) { /* New coin arrived */
+		if (mysql_query(db, sql) != 0) {
+			CM_ERROR("%s\n", mysql_error(db));
+			UNLOCK_DB_ACCESS;
+			return;
+		}
+
+		result = mysql_store_result(db);
+		if (result == NULL) {
+			CM_ERROR("%s\n", mysql_error(db));
+			UNLOCK_DB_ACCESS;
+			return;
+		}
+
+		row = mysql_fetch_row(result);
+		if (row == NULL) { /* New coin arrived */
 			sprintf(sql2, "INSERT INTO `coin_history` (coin_key, coin_symbol) "
 			"VALUES ('%s', '%s')", t->id, t->symbol);
 
@@ -205,7 +220,7 @@ void cm_update_table(MYSQL *db, struct coin_entry_base *coin_base)
 			if (mysql_query(db, sql2) != 0)
 				CM_ERROR("%s\n", mysql_error(db));
 		}
-		mysql_free_result(mysql_store_result(db));
+		mysql_free_result(result);
 
 		sprintf(sql,
 		  "UPDATE `coin_history` SET %s = %d WHERE coin_key = '%s';",
