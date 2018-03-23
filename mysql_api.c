@@ -366,7 +366,7 @@ struct coin_status_base *fetch_duration(MYSQL *db, const char *col1,
 	MYSQL_RES *result;
 	MYSQL_ROW row;
 
-	struct coin_status_base *coin_stat_base = init_coin_status_base();
+	struct coin_status_base *coin_stat_base;
 
 	LOCK_DB_ACCESS;
 
@@ -390,11 +390,12 @@ struct coin_status_base *fetch_duration(MYSQL *db, const char *col1,
 
 	if (mysql_num_fields(result) != 4) { /* this should return 3 columns */
 		CM_ERROR("%s\n", mysql_error(db));
-		free_coin_status_base(coin_stat_base);
 		mysql_free_result(result);
 		UNLOCK_DB_ACCESS;
 		return NULL;
 	}
+
+	coin_stat_base = init_coin_status_base();
 
 	while ((row = mysql_fetch_row(result))) {
 		struct coin_status *s;

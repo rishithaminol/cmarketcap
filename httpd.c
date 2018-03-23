@@ -252,6 +252,8 @@ void print_uri_base(struct uri_base *ub)
 
 /* @brief Send response to the user.
  *
+ * On error make 't = NULL'.
+ *
  * @param[in] header Used for reading path name (URL parameters).
  *			  header has user reqested data.
  * @param[in] sockfd File descriptor to write (Openned connection fd)
@@ -279,7 +281,7 @@ static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *
 	tokens = tokenize_uri(header->url);
 	if (tokens == NULL) {
 		CM_ERROR("tokenization malfunction\n");
-		return;
+		goto error__;
 	}
 
 	te_entry = tokens->first;
@@ -292,7 +294,12 @@ static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *
 			sb = fetch_duration(db, "min_0", te_entry->value);
 		}
 		UNLOCK_SHIFT_COLUMN_LOCKER;
-		t = sb->first;
+
+		if (sb != NULL) {
+			t = sb->first;
+		} else {
+			goto error__;
+		}
 	} else if (strcmp(te_entry->key, "coinid") == 0) { /* /home/path/?coinid=bitcoin&range=1 or 2 */
 		char *coin_id = te_entry->value;
 		te_entry = te_entry->next;
@@ -317,17 +324,16 @@ static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *
 			}
 		} else {
 			CM_ERROR("invalid option for '%s' coinid\n", coin_id);
-			return;
+			goto error__;
 		}
 	} else {
 		CM_ERROR("tokenization malfunction\n");
-		return;
+		goto error__;
 	}
 	free_uri_base(tokens);
 
 	if (t == NULL) {
-		write(sockfd, "{\"error\": \"error occured\"}\n", strlen("{\"error\": \"error occured\"}\n"));
-		return;
+		goto error__;
 	}
 
 	int i = 1;
@@ -341,6 +347,9 @@ static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *
 	}
 
 	free_coin_status_base(sb);
+
+error__:
+	write(sockfd, "{\"error\": \"error occured\"}\n", strlen("{\"error\": \"error occured\"}\n"));
 } /* send_json_response */
 
 struct __cb_args {
