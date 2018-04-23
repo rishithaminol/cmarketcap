@@ -131,10 +131,8 @@ void close_main_db(MYSQL *db)
 		mysql_close(db);
 }
 
-/** @brief Initialize 'coin_history' table's 'coin_key' field
- *
- * @todo This function should have a way of updating newly arrived coins.
- *       And there should be a way of informing dropped coins
+/**
+ * @brief Initialize 'coin_history' table's 'coin_key' field
  */
 void init_coin_history_table(MYSQL *db, struct coin_entry_base *coin_base)
 {
