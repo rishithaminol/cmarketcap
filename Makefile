@@ -4,6 +4,8 @@ LDFLAGS=$(shell pkg-config --libs jansson libcurl) $(shell mysql_config --libs) 
 CC=gcc
 
 TARGETS=cmarketcap
+DOXYGEN=doxygen
+
 
 cmarketcap: mysql_api.o signal_handler.o timer.o httpd.o cm_debug.o json_parser.o cmarketcap.c
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
@@ -20,5 +22,9 @@ cm_debug.o: cm_debug.c cm_debug.h
 
 json_parser.o: json_parser.c json_parser.h
 
+doxygen:
+	$(DOXYGEN) cmarketcap.doxy
+
 clean:
-	rm -rf *.o $(TARGETS)
+	rm -rf *.o $(TARGETS) doc/doxygen/*
+
