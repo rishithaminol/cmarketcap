@@ -1,3 +1,14 @@
+/**
+ * @file cm_debug.c
+ * @brief A common way of error reporting and debugging messages
+ * @detail This section handles all the error reporting
+ *		   features in all sections. Using this section
+ *		   the programmer can debug the code (finding the
+ *		   line number, section, function name). To enable
+ *		   this feature programmer need to enable 'CM_DEBUG_'
+ *		   at compile time.
+ */
+
 #ifndef CM_DEBUG_H
 #define CM_DEBUG_H
 
