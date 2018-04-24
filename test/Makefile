@@ -6,7 +6,7 @@ LDFLAGS=$(shell pkg-config --libs jansson libcurl) -lpthread
 
 CC=gcc
 
-TARGETS=signal_handler_test http_parser url_token_test mysql_api_test
+TARGETS=signal_handler_test http_parser url_token_test mysql_api_test http_test
 
 MYSQL_CFLAGS=$(shell mysql_config --cflags) -DCM_DEBUG_ -I$(PREV_DIR)
 MYSQL_LDFLAGS=$(shell mysql_config --libs)
@@ -16,6 +16,9 @@ url_token_test: httpd.o cm_debug.o sql_api.o cmarketcap.o json_parser.o timer.o 
 
 mysql_api_test: cm_debug.o mysql_api_test.c
 	$(CC) $(MYSQL_CFLAGS) $^ -o $@ $(MYSQL_LDFLAGS)
+
+http_test: ../http-parser/http_parser.o http_test.c
+	$(CC) $(CFLAGS) -I../http-parser/ $^ -o $@ $(LDFLAGS)
 
 httpd.o: $(PREV_DIR)/httpd.c
 	$(CC) $(CFLAGS) -c $^ -o ./$@
@@ -45,4 +48,3 @@ signal_handler.o: $(PREV_DIR)/signal_handler.c
 
 clean:
 	rm -rf *.o $(TARGETS)
-
