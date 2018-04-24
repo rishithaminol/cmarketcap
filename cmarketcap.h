@@ -3,6 +3,12 @@
 
 #include <pthread.h>
 
+/**
+ * @brief Remember the file descriptor of openned socket.
+ *
+ * This global structure is used for close the connection
+ * in unexpected exits.
+ */
 struct global_data_handle {
 	int httpd_sockfd;
 };

@@ -1,6 +1,8 @@
 *.o
 cmarketcap
 *.db-journal
+*/doxygen/*
 
 test/url_token_test
 test/mysql_api_test
+test/http_test

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <jansson.h>
 #include <curl/curl.h>
+#include <unistd.h>
 #include <time.h>
 
 #define COINMARKETCAP_URL "https://api.coinmarketcap.com/v1/ticker/?limit=7000"
@@ -46,8 +47,9 @@ static struct coin_entry *malloc_coin_entry()
 	return x;
 }
 
-/* @brief Creates new 'coin_entry'. Output x->index does not have a value
- * 			but it is updated inside 'append_coin_entry' using 'entry_count'.
+/**
+ * @brief Creates new 'coin_entry'. Output x->index does not have a value
+ * 		  but it is updated inside 'append_coin_entry' using 'entry_count'.
  */
 static struct coin_entry *mk_coin_entry(json_t *id, json_t *name,
 	json_t *symbol, json_t *rank, json_t *price_usd)
@@ -71,7 +73,8 @@ static struct coin_entry *mk_coin_entry(json_t *id, json_t *name,
 	return x;
 }
 
-/* @brief append the given coin entry at the end of the linked list 
+/**
+ * @brief append the given coin entry at the end of the linked list 
  *
  *	@param[in] eb entry_base
  *	@param[in] cd coin_entry
@@ -208,10 +211,12 @@ static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream)
 	return size * nmemb;
 }
 
-/* @brief This will return a large text output which is needed
+/**
+ * @brief This will return a large text output which is needed
  *			by 'json_loads()'
  *
- *	@param[in] url API url to be read from 'coinmarketcap.com'.
+ * @param[in] url API url to be read from 'coinmarketcap.com'.
+ * @return Returns fetched data as a raw string.
  */
 static char *request_json_data(const char *url)
 {
@@ -244,11 +249,10 @@ static char *request_json_data(const char *url)
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &write_result);
 
-	status = curl_easy_perform(curl);
-	if (status != 0) {
+	while ((status = curl_easy_perform(curl)) != 0) {
 		CM_ERROR("unable to request data from %s:\n", url);
 		CM_ERROR("%s\n", curl_easy_strerror(status));
-		goto error;
+		sleep(1);
 	}
 
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);

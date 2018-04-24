@@ -14,6 +14,7 @@
 #include "mysql_api.h"
 #include "httpd.h"
 #include "cmarketcap.h"
+#include "http_parser.h"
 
 #define RD_BUFF_MAX 1024
 #define CLIENT_MAX  10
@@ -45,7 +46,7 @@ static void parse_http_header(char *buff, struct myhttp_header *header)
 	char *token;
 	char *line = NULL;
 
-	/* fetch the first line. like 'GET /path HTTP/1.1' */
+	/* fetch the first line. like 'GET /home/path?coinid=bitcoin&start=min_5 HTTP/1.1' */
 	line = strtok_r(line, "\n", &buff);
 	DEBUG_MSG("request line = \"%s\"\n", line);
 
@@ -174,7 +175,8 @@ static void append_uri_entry(struct uri_base *ub, struct  uri_entry *ue)
 	ub->last->index = (size_t)ub->entry_count++;
 }
 
-/* @brief delimeter charachter is '&' 
+/**
+ * @brief delimeter charachter is '&' 
  *
  * '/any/path?hello=world&rishitha=minol' breaks this string using '&'
  * and pass 'key=value' like strings to 'mk_uri_entry()'
@@ -182,26 +184,33 @@ static void append_uri_entry(struct uri_base *ub, struct  uri_entry *ue)
  * @param uri This string gets modified.
  * @return returns 'NULL' on error
  */
-struct uri_base *tokenize_uri(const char *uri)
+struct uri_base *tokenize_uri(const char *url)
 {
 	char *x = NULL;
 	char *y;
 	char uri_[MAX_URI_SIZE];
+	struct uri_base *uri_base;
 	struct uri_entry *t;
 
-	struct uri_base *uri_base = init_uri_base();
+	struct http_parser_url u; /*!< http_parser.h - 4th field is the url options */
+	http_parser_url_init(&u);
+	size_t len = strlen(url);
+	http_parser_parse_url(url, len, 0, &u);
 
-	strncpy(uri_, uri, MAX_URI_SIZE);
+	if ((u.field_set & (1 << 4)) == 0) /* no data */
+		return NULL;
 
-	x = strchr(uri_, '?'); /**! start of the url options */
-							  /* 'hello=world&rishitha=minol' */
+	strncpy(uri_, url + u.field_data[4].off, u.field_data[4].len);//MAX_URI_SIZE);
+
+	x = uri_; /*!<  start of the url options 'hello=world&rishitha=minol' */
+
 	if (x == NULL) {
 		CM_ERROR("path string\n");
-		free(uri_base);
 		return NULL;
 	}
 
-	x++;
+	uri_base = init_uri_base();
+
 	while (x != NULL) {
 		y = x;
 		x = strchr(x, '&');
@@ -271,6 +280,7 @@ static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *
 	strcpy(code, "200");
 	send_header(sockfd, code, "application/json");
 
+
 	/* example url sets 
 	 * 
 	 * /home/path?rank=full
@@ -278,7 +288,8 @@ static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *
 	 */
 	struct uri_base *tokens;
 	struct uri_entry *te_entry;
-	tokens = tokenize_uri(header->url);
+	DEBUG_MSG("%s\n", header->url);
+	tokens = tokenize_uri(header->url); /* what happens if empty string comes here */
 	if (tokens == NULL) {
 		CM_ERROR("tokenization malfunction\n");
 		goto error__;

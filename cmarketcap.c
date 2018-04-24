@@ -55,7 +55,7 @@ void *__cb_update_database(void *arg)
 	struct __cb_args *__cb_arg;
 	__cb_arg = (struct __cb_args *)arg;
 
-	pthread_detach(pthread_self());
+	pthread_detach(pthread_self()); /* behaves as a self controlled thread */
 
 	while (1) {
 		DEBUG_MSG("Starting to count..\n");
