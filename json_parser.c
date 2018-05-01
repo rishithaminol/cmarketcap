@@ -92,6 +92,9 @@ static void append_coin_entry(struct coin_entry_base *eb, struct coin_entry *ce)
 	eb->last->index = eb->entry_count++;
 }
 
+/**
+ * @brief Print the given 'coin_entry_base' structure
+ */
 void print_entries(struct coin_entry_base *eb)
 {
 	DEBUG_MSG("number of entries = %d\n", eb->entry_count);
@@ -108,7 +111,11 @@ void print_entries(struct coin_entry_base *eb)
 	}
 }
 
-/* @brief freeup entire 'coin_entry_base' C data structure */
+/**
+ * @brief freeup entire 'coin_entry_base' C data structure
+ *
+ * @return Nothing
+ */
 void free_entry_base(struct coin_entry_base *eb)
 {
 	struct coin_entry *entry, *entry2;
@@ -133,7 +140,7 @@ void free_entry_base(struct coin_entry_base *eb)
  * @brief Downloads cryptocurrency data from 'coinmarketcap.com'
  *		  and return them as a C data structure.
  *
- * In this program we call this structure as 'coin_entry_base'
+ * @detail In this program we call this structure as 'coin_entry_base'
  *
  * @return 'coin_entry_base'
  */

@@ -1,3 +1,10 @@
+/**
+ * @file cmarketcap.c
+ *
+ * @todo Fix static pthread mutex initialization. see
+ *		 'pthread.c' in test suites.
+ */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -12,11 +19,15 @@
 #include "timer.h"
 #include "signal_handler.h"
 
+/*! Initialize 'column shifting locking' mechanism */
 pthread_mutex_t shift_column_locker = PTHREAD_MUTEX_INITIALIZER;
 
+/*! for the time being this is used by 'httpd.c' and
+ *  'signal_handler.c' (httpd_sockfd)
+ */
 struct global_data_handle global_data_handle;
 
-/* @brief coin_history column map */
+/*! coin_history column mapping */
 char *col_names[] = {
 	"min_0", "min_5", "min_10", "min_15", "min_20", "min_25", "min_30",
 	"min_35", "min_40", "min_45", "min_50", "min_55", "hr_1",
@@ -26,7 +37,7 @@ char *col_names[] = {
 	"hr_24", "day_1", "day_2", "day_3", "day_4", "day_5", "day_6", "day_7" //43rd column
 };
 
-char *prog_name = NULL; /**< Program name */
+char *prog_name = NULL;
 
 struct __cb_args {
 	MYSQL *db;
@@ -37,16 +48,17 @@ struct __cb_args {
 };
 
 /**
- * @brief callback function
+ * @brief Callback function of 'main()' thread.
  *
- * @param[in] arg This is 'void *' converted '__cb_args' structure
+ * @param[in] arg This is 'void *' converted '__cb_args' structure.
+ 				  This is converted back to the '__cb_args'.
  */
 void *__cb_update_database(void *arg)
 {
 	struct coin_entry_base *coin_base;
 
 	/* counter variables */
-	int min_col = 0; /**! minutes column counter */
+	int min_col = 0; /* minutes column counter */
 	int min_hour_trig = 0; /* minutes and hour trigger */
 	int hour_day_trig = 0;
 	int hour_col = 0;
@@ -78,7 +90,7 @@ void *__cb_update_database(void *arg)
 			for (j = min_hour_trig + hour_col; j > 11; j--)
 				shift_columns(__cb_arg->db, col_names[j], col_names[j - 1]);
 
-			hour_col++; /**! filled an 1 hour column */
+			hour_col++; /* filled an 1 hour column */
 			if (hour_col == 24)
 				hour_col--;
 			hour_day_trig++;

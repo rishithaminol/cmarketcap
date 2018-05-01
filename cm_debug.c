@@ -1,3 +1,7 @@
+/**
+ * @file cm_debug.c
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
@@ -5,12 +9,6 @@
 
 #include "cmarketcap.h"
 #include "cm_debug.h"
-
-#define BOLD  "\033[1m"
-#define COLOR_RESET "\033[0m"
-#define COLOR_RED  "\033[31m"
-#define COLOR_GREEN  "\033[32m"
-#define COLOR_CYN  "\033[36m"
 
 #ifdef CM_DEBUG_
 void cm_error(const char *section, const char *func, int line_num,
