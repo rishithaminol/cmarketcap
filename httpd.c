@@ -18,7 +18,7 @@
 
 #define RD_BUFF_MAX 1024
 #define CLIENT_MAX  10
-#define MAX_URI_SIZE 2048
+#define MAX_URL_SIZE 2048
 
 pthread_mutex_t number_of_clients_var_locker = PTHREAD_MUTEX_INITIALIZER;
 size_t number_of_clients = 0;
@@ -101,9 +101,9 @@ static void send_header(int sockfd, char *code, char *type)
  *  url tokenization mechanism
  *  @{
  */
-static struct uri_base *init_uri_base()
+static struct url_base *init_url_base()
 {
-	struct uri_base *x = (struct uri_base *)malloc(sizeof(struct uri_base));
+	struct url_base *x = (struct url_base *)malloc(sizeof(struct url_base));
 	if (!x) {
 		CM_ERROR("memory allocation\n");
 		return NULL;
@@ -116,9 +116,9 @@ static struct uri_base *init_uri_base()
 	return x;
 }
 
-static struct uri_entry *init_uri_entry()
+static struct url_entry *init_url_entry()
 {
-	struct uri_entry *x = (struct uri_entry *)malloc(sizeof(struct uri_entry));
+	struct url_entry *x = (struct url_entry *)malloc(sizeof(struct url_entry));
 	if (!x) {
 		CM_ERROR("memory allocation\n");
 		return NULL;
@@ -134,22 +134,22 @@ static struct uri_entry *init_uri_entry()
  *
  * @return On error returns NULL indicating invalid 'key=value' pair
  */
-static struct uri_entry *mk_uri_entry(char *uri_e)
+static struct url_entry *mk_url_entry(char *url_e)
 {
-	struct uri_entry *x;
+	struct url_entry *x;
 	char *value;
 	char *key;
 
-	value = strchr(uri_e, '=') + 1;
+	value = strchr(url_e, '=') + 1;
 	if (value == NULL) {
-		CM_ERROR("Invalid uri_entry\n");
+		CM_ERROR("Invalid url_entry\n");
 		return NULL;
 	}
 
 	*(value - 1) = '\0';
-	key = uri_e;
+	key = url_e;
 
-	x = init_uri_entry();
+	x = init_url_entry();
 	x->key = strdup(key);
 	x->value = strdup(value);
 
@@ -157,12 +157,12 @@ static struct uri_entry *mk_uri_entry(char *uri_e)
 }
 
 /**
- * @brief append the given uri entry at the end of the linked list 
+ * @brief append the given url entry at the end of the linked list 
  *
- *	@param[in] eb uri_base
- *	@param[in] cd uri_entry
+ *	@param[in] eb url_base
+ *	@param[in] cd url_entry
  */
-static void append_uri_entry(struct uri_base *ub, struct  uri_entry *ue)
+static void append_url_entry(struct url_base *ub, struct  url_entry *ue)
 {
 	if (ub->first == NULL) {/* first and last = NULL */
 		ub->first = ue;
@@ -179,18 +179,18 @@ static void append_uri_entry(struct uri_base *ub, struct  uri_entry *ue)
  * @brief delimeter charachter is '&' 
  *
  * '/any/path?hello=world&rishitha=minol' breaks this string using '&'
- * and pass 'key=value' like strings to 'mk_uri_entry()'
+ * and pass 'key=value' like strings to 'mk_url_entry()'
  *
- * @param uri This string gets modified.
+ * @param url This string gets modified.
  * @return returns 'NULL' on error
  */
-struct uri_base *tokenize_uri(const char *url)
+struct url_base *tokenize_url(const char *url)
 {
 	char *x = NULL;
 	char *y;
-	char uri_[MAX_URI_SIZE];
-	struct uri_base *uri_base;
-	struct uri_entry *t;
+	char url_[MAX_URL_SIZE];
+	struct url_base *url_base;
+	struct url_entry *t;
 
 	struct http_parser_url u; /*!< http_parser.h - 4th field is the url options */
 	http_parser_url_init(&u);
@@ -200,16 +200,16 @@ struct uri_base *tokenize_uri(const char *url)
 	if ((u.field_set & (1 << 4)) == 0) /* no data */
 		return NULL;
 
-	strncpy(uri_, url + u.field_data[4].off, u.field_data[4].len);//MAX_URI_SIZE);
+	strncpy(url_, url + u.field_data[4].off, u.field_data[4].len);//MAX_URL_SIZE);
 
-	x = uri_; /*!<  start of the url options 'hello=world&rishitha=minol' */
+	x = url_; /*!<  start of the url options 'hello=world&rishitha=minol' */
 
 	if (x == NULL) {
 		CM_ERROR("path string\n");
 		return NULL;
 	}
 
-	uri_base = init_uri_base();
+	url_base = init_url_base();
 
 	while (x != NULL) {
 		y = x;
@@ -219,19 +219,19 @@ struct uri_base *tokenize_uri(const char *url)
 			x++;
 		}
 
-		t = mk_uri_entry(y); /* hello=world */
+		t = mk_url_entry(y); /* hello=world */
 		if (t != NULL) {
-			append_uri_entry(uri_base, t);
+			append_url_entry(url_base, t);
 		}
 	}
 
-	return uri_base;
+	return url_base;
 }
 
-/* @brief freeup 'struct uri_base *' */
-void free_uri_base(struct uri_base *ub)
+/* @brief freeup 'struct url_base *' */
+void free_url_base(struct url_base *ub)
 {
-	struct uri_entry *entry, *t;
+	struct url_entry *entry, *t;
 
 	entry = ub->first;
 	free(ub);
@@ -247,9 +247,9 @@ void free_uri_base(struct uri_base *ub)
 	}
 }
 
-void print_uri_base(struct uri_base *ub)
+void print_url_base(struct url_base *ub)
 {
-	struct uri_entry *t;
+	struct url_entry *t;
 
 	t = ub->first;
 	while (t != NULL) {
@@ -257,7 +257,7 @@ void print_uri_base(struct uri_base *ub)
 		t = t->next;
 	}
 }
-/*! @} */ /* uri_tokenization */
+/*! @} */ /* url_tokenization */
 
 /* @brief Send response to the user.
  *
@@ -286,10 +286,10 @@ static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *
 	 * /home/path?rank=full
 	 * /home/path?coinid=bitcoin&start=min_5&limit=min_30
 	 */
-	struct uri_base *tokens;
-	struct uri_entry *te_entry;
+	struct url_base *tokens;
+	struct url_entry *te_entry;
 	DEBUG_MSG("%s\n", header->url);
-	tokens = tokenize_uri(header->url); /* what happens if empty string comes here */
+	tokens = tokenize_url(header->url); /* what happens if empty string comes here */
 	if (tokens == NULL) {
 		CM_ERROR("tokenization malfunction\n");
 		goto error__;
@@ -322,14 +322,14 @@ static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *
 				LOCK_SHIFT_COLUMN_LOCKER;
 				fetch_range_level1(coin_id, db, sockfd);
 				UNLOCK_SHIFT_COLUMN_LOCKER;
-				free_uri_base(tokens);
+				free_url_base(tokens);
 
 				return;
 			} else if (strcmp(range, "2") == 0) {
 				LOCK_SHIFT_COLUMN_LOCKER;
 				fetch_range_level2(coin_id, db, sockfd);
 				UNLOCK_SHIFT_COLUMN_LOCKER;
-				free_uri_base(tokens);
+				free_url_base(tokens);
 
 				return;
 			}
@@ -341,7 +341,7 @@ static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *
 		CM_ERROR("tokenization malfunction\n");
 		goto error__;
 	}
-	free_uri_base(tokens);
+	free_url_base(tokens);
 
 	if (t == NULL) {
 		goto error__;

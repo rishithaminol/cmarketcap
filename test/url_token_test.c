@@ -11,11 +11,11 @@
 int main()
 {
 	char tok1[] = "/any/path?hello=world&rishitha=minol";
-	struct uri_base *x;
+	struct url_base *x;
 
-	x = tokenize_uri(tok1);
-	print_uri_base(x);
-	free_uri_base(x);
+	x = tokenize_url(tok1);
+	print_url_base(x);
+	free_url_base(x);
 
 	return 0;
 }

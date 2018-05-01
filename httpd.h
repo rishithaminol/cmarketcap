@@ -14,21 +14,21 @@ struct myhttp_header {
  *  @{
  */
 
-/*! uri key=value pair */
-struct uri_entry {
+/*! url key=value pair */
+struct url_entry {
 	size_t index;
 	char *key;
 	char *value;
 
-	struct uri_entry *next;
+	struct url_entry *next;
 };
 
-struct uri_base {
+struct url_base {
 	size_t entry_count;
-	struct uri_entry *first;
-	struct uri_entry *last;
+	struct url_entry *first;
+	struct url_entry *last;
 };
-/*! @} */ /* uri_tokenization */
+/*! @} */ /* url_tokenization */
 
 extern int __cb_main_thread(MYSQL *db, int port_num);
 
@@ -36,10 +36,10 @@ extern int __cb_main_thread(MYSQL *db, int port_num);
  *  url tokenization mechanism
  *  @{
  */
-extern struct uri_base *tokenize_uri(const char *uri);
-extern void print_uri_base(struct uri_base *ub);
-extern void free_uri_base(struct uri_base *ub);
-/*! @} */ /* uri_tokenization */
+extern struct url_base *tokenize_url(const char *url);
+extern void print_url_base(struct url_base *ub);
+extern void free_url_base(struct url_base *ub);
+/*! @} */ /* url_tokenization */
 
 extern size_t num_of_clients();
 extern void init_httpd_mutexes();
