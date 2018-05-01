@@ -1,3 +1,7 @@
+/**
+ * @file httpd.c
+ */
+
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/times.h>
@@ -20,28 +24,29 @@
 #define CLIENT_MAX  10
 #define MAX_URL_SIZE 2048
 
-pthread_mutex_t number_of_clients_var_locker = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t number_of_clients_var_locker = PTHREAD_MUTEX_INITIALIZER;
 size_t number_of_clients = 0;
 #define LOCK_NUM_OF_CLIENTS_LOCKER pthread_mutex_lock( \
 	&number_of_clients_var_locker)
 #define UNLOCK_NUM_OF_CLIENTS_LOCKER pthread_mutex_unlock( \
 	&number_of_clients_var_locker)
 
-static void parse_http_header(char *buff, struct myhttp_header *header);
+static void parse_http_header(char *buff, struct http_header *header);
 static void *__cb_read_from_client(void *cb_arg);
-static int check_http_header(struct myhttp_header *header);
+static int check_http_header(struct http_header *header);
 static void send_header(int sockfd, char *code, char *type);
-static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *db);
+static void send_json_response(int sockfd, struct http_header *header, MYSQL *db);
 static void inc_number_of_clients(); /*! Increment number of clients */
 static void dec_number_of_clients(); /*! Decrement number of clients */
 
-/** @brief Parse http headers into a data structure.
+/**
+ * @brief Parse http headers into a data structure.
  *
  * This function is called by multiple threads. All modifications should be
  * thread safe
  *
  */
-static void parse_http_header(char *buff, struct myhttp_header *header)
+static void parse_http_header(char *buff, struct http_header *header)
 {
 	char *token;
 	char *line = NULL;
@@ -59,14 +64,15 @@ static void parse_http_header(char *buff, struct myhttp_header *header)
 	strcpy(header->protocol, token);
 }
 
-static int check_http_header(struct myhttp_header *header)
+static int check_http_header(struct http_header *header)
 {
 	return 0;
 }
 
-/* @brief Send http headers to the client
+/**
+ * @brief Send http headers to the client
  *
- * called by send_json_response
+ * called by 'send_json_response()'
  */
 static void send_header(int sockfd, char *code, char *type)
 {
@@ -157,7 +163,8 @@ static struct url_entry *mk_url_entry(char *url_e)
 }
 
 /**
- * @brief append the given url entry at the end of the linked list 
+ * @brief append the given 'url_entry' at the end of the linked list
+ *		  of 'url_base *ub' 
  *
  *	@param[in] eb url_base
  *	@param[in] cd url_entry
@@ -176,10 +183,11 @@ static void append_url_entry(struct url_base *ub, struct  url_entry *ue)
 }
 
 /**
- * @brief delimeter charachter is '&' 
+ * @brief Tokenize a given url using '&' as delimiter
  *
- * '/any/path?hello=world&rishitha=minol' breaks this string using '&'
- * and pass 'key=value' like strings to 'mk_url_entry()'
+ * For example this function breaks '/any/path?hello=world&rishitha=minol'
+ * using '&' and pass 'key=value' like strings to 'mk_url_entry()' which
+ * returns 'url_entry' type structure.
  *
  * @param url This string gets modified.
  * @return returns 'NULL' on error
@@ -192,7 +200,7 @@ struct url_base *tokenize_url(const char *url)
 	struct url_base *url_base;
 	struct url_entry *t;
 
-	struct http_parser_url u; /*!< http_parser.h - 4th field is the url options */
+	struct http_parser_url u; /* http_parser.h - 4th field is the url options */
 	http_parser_url_init(&u);
 	size_t len = strlen(url);
 	http_parser_parse_url(url, len, 0, &u);
@@ -202,7 +210,7 @@ struct url_base *tokenize_url(const char *url)
 
 	strncpy(url_, url + u.field_data[4].off, u.field_data[4].len);//MAX_URL_SIZE);
 
-	x = url_; /*!<  start of the url options 'hello=world&rishitha=minol' */
+	x = url_; /* start of the url options 'hello=world&rishitha=minol' */
 
 	if (x == NULL) {
 		CM_ERROR("path string\n");
@@ -228,7 +236,9 @@ struct url_base *tokenize_url(const char *url)
 	return url_base;
 }
 
-/* @brief freeup 'struct url_base *' */
+/**
+ * @brief freeup 'struct url_base *'
+ */
 void free_url_base(struct url_base *ub)
 {
 	struct url_entry *entry, *t;
@@ -247,6 +257,9 @@ void free_url_base(struct url_base *ub)
 	}
 }
 
+/**
+ * @brief Print the key value pair list
+ */
 void print_url_base(struct url_base *ub)
 {
 	struct url_entry *t;
@@ -259,7 +272,8 @@ void print_url_base(struct url_base *ub)
 }
 /*! @} */ /* url_tokenization */
 
-/* @brief Send response to the user.
+/**
+ * @brief Send response to the user.
  *
  * On error make 't = NULL'.
  *
@@ -269,7 +283,7 @@ void print_url_base(struct url_base *ub)
  *
  * We have to write a functio to tokenize url data.
  */
-static void send_json_response(int sockfd, struct myhttp_header *header, MYSQL *db)
+static void send_json_response(int sockfd, struct http_header *header, MYSQL *db)
 {
 	char code[4];
 	struct coin_status_base *sb;
@@ -368,12 +382,12 @@ struct __cb_args {
 	MYSQL *db;
 };
 
-/* @brief Callback function for 'pthread_create' */
+/*! @brief Callback function for 'pthread_create' */
 static void *__cb_read_from_client(void *cb_arg)
 {
 	char buffer[RD_BUFF_MAX];
 	int nbytes;
-	struct myhttp_header header; /* HEADER */
+	struct http_header header; /* HEADER */
 	int sockfd;
 	struct __cb_args *_cb_arg = (struct __cb_args *)cb_arg;
 
@@ -397,7 +411,7 @@ static void *__cb_read_from_client(void *cb_arg)
 				send_header(sockfd, "400", "text/html"); /* bad request */
 				break;
 			}
-			parse_http_header(buffer, &header); /**! parse_http_header */
+			parse_http_header(buffer, &header); /* parse_http_header */
 
 			send_json_response(sockfd, &header, db); /* buffer and header should be filled with zeros */
 
@@ -413,7 +427,7 @@ static void *__cb_read_from_client(void *cb_arg)
 	pthread_exit(NULL);
 }
 
-/* @brief returns number of clients at the moment */
+/*! @brief returns number of clients at the moment */
 size_t num_of_clients()
 {
 	size_t num;
@@ -424,7 +438,7 @@ size_t num_of_clients()
 	return num;
 }
 
-/* @brief Increas number of clients at the moment */
+/*! @brief Increas number of clients at the moment */
 static void inc_number_of_clients()
 {
 	LOCK_NUM_OF_CLIENTS_LOCKER;
@@ -432,7 +446,7 @@ static void inc_number_of_clients()
 	UNLOCK_NUM_OF_CLIENTS_LOCKER;
 }
 
-/* @brief Decrease number of clients at the moment */
+/*! @brief Decrease number of clients at the moment */
 static void dec_number_of_clients()
 {
 	LOCK_NUM_OF_CLIENTS_LOCKER;
@@ -440,7 +454,16 @@ static void dec_number_of_clients()
 	UNLOCK_NUM_OF_CLIENTS_LOCKER;
 }
 
-/* @brief needs openned database */
+/**
+ * @brief Handle incoming connections
+ *
+ * @detail Create a thread for each accepted client and handle each client
+ *		   individually by '__cb_read_from_client'. This function can determine
+ *		   number of clients.
+ *
+ * @todo Thread destruction mechanism should be implemented
+ *		 inside this function. (not mandatory)
+ */
 int __cb_main_thread(MYSQL *db, int port_num)
 {
 	int httpd_port;
@@ -450,7 +473,7 @@ int __cb_main_thread(MYSQL *db, int port_num)
 	struct sockaddr_in client_sockaddr;
 	socklen_t clilen = sizeof(struct sockaddr_in);;
 
-	pthread_t httpd_thread; /**! store thread id */
+	pthread_t httpd_thread; /* store thread id */
 
 	//pthread_detach(pthread_self());
 
@@ -482,8 +505,8 @@ int __cb_main_thread(MYSQL *db, int port_num)
 		exit(1);
 	}
 
-	/* at this stage 'global_data_handle.httpd_sockfd', 'httpd_sockaddr', 'httpd_port', 'clilen'
-	 * settled up */
+	/* at this stage 'global_data_handle.httpd_sockfd', 'httpd_sockaddr',
+	 * 'httpd_port', 'clilen' settled up */
 	while (1) {
 		struct __cb_args *cb_arg = NULL;
 		sockfd = accept(global_data_handle.httpd_sockfd, (struct sockaddr *)&client_sockaddr, &clilen);
@@ -497,7 +520,7 @@ int __cb_main_thread(MYSQL *db, int port_num)
 			cb_arg->db = db;
 		}
 
-		/* @todo additional thread destruction should be started from here */
+		/* thread destruction as noted above */
 		if (pthread_create(&httpd_thread, NULL, (void *)__cb_read_from_client,
 			(void *)cb_arg) != 0) {
 			CM_ERROR("pthread create error\n");
@@ -513,7 +536,7 @@ int __cb_main_thread(MYSQL *db, int port_num)
 	return 0;
 } /* __cb_main_thread */
 
-/* @brief Initialize mutex functionalities of 'httpd.c' section */
+/*! @brief Initialize mutex functionalities of 'httpd.c' section */
 void init_httpd_mutexes()
 {
 	pthread_mutex_init(&number_of_clients_var_locker, NULL);

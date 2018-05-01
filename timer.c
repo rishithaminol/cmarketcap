@@ -1,10 +1,15 @@
+/**
+ * @file timer.c
+ */
+
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "httpd.h"
 
-/* @brief Count down timer display
+/**
+ * @brief Count down timer display
  *
  * @param[in] sec number of seconds to wait
  * @param[in] wait_str display string while waiting

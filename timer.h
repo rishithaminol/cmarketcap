@@ -1,3 +1,9 @@
+/**
+ * @file timer.h
+ *
+ * @brief Add time related functionalities to the program. 
+ */
+
 #ifndef TIMER_H_
 #define TIMER_H_
 

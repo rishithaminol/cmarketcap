@@ -1,3 +1,7 @@
+/**
+ * @file json_parser.c
+ */
+
 #include <stdlib.h>
 #include <string.h>
 #include <jansson.h>
@@ -77,6 +81,7 @@ static struct coin_entry *mk_coin_entry(json_t *id, json_t *name,
  * @brief append the given coin entry at the end of the linked list 
  *
  *	@param[in] eb entry_base
+ *
  *	@param[in] cd coin_entry
  */
 static void append_coin_entry(struct coin_entry_base *eb, struct coin_entry *ce)
@@ -220,9 +225,10 @@ static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream)
 
 /**
  * @brief This will return a large text output which is needed
- *			by 'json_loads()'
+ *		  by 'json_loads()'
  *
  * @param[in] url API url to be read from 'coinmarketcap.com'.
+ *
  * @return Returns fetched data as a raw string.
  */
 static char *request_json_data(const char *url)

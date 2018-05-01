@@ -1,3 +1,10 @@
+/**
+ * @file signal_handler.c
+ *
+ * @todo Make 'handle_SIGINT' and 'handle_SIGSEGV' local to this
+ * 		 section.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h> // sigaction(), sigsuspend(), sig*()

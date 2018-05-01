@@ -1,9 +1,13 @@
+/**
+ * @file httpd.h
+ */
+
 #ifndef HTTPD_H_
 #define HTTPD_H_
 
 #include "mysql_api.h"
 
-struct myhttp_header {
+struct http_header {
 	char method[5];
 	char url[200];
 	char protocol[10];
